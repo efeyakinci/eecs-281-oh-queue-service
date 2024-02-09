@@ -144,8 +144,8 @@ const join_queue_handler = async (socket: Socket, msg: any) => {
     });
 
     if (queue.has_item_matching(s => s.uniqname === student.uniqname)) {
-        //socket.emit(as_response(QueueEvents.JOIN), {error: 'Already in queue'});
-        // return;
+        socket.emit(as_response(QueueEvents.JOIN), {error: 'Already in queue'});
+        return;
     }
 
     if (users_to_queues.has(user.uniqname)) {

@@ -20,7 +20,6 @@ const queues: {[s: string]: {[s: string]: any}} = {
         name: "BBB Office Hours",
         is_relevant_schedule_item: (item: any) => {
             const lower_summary = item.summary.toLowerCase();
-            console.log(lower_summary)
             return lower_summary.includes("bbb") && !lower_summary.includes("proffice");
         }
     },

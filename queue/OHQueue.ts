@@ -116,8 +116,6 @@ export class OHQueue<T> {
                 return this.prioritizer.assign_priority(a.item) - this.prioritizer.assign_priority(b.item);
             }
         };
-
-        setTimeout(() => {console.log(this.queue_name, calendar.get_current_status())}, 2000)
     }
 
     enqueue(queuer: T): string {

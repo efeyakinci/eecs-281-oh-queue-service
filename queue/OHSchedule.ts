@@ -2,7 +2,10 @@ import { google } from 'googleapis';
 import * as fs from "node:fs";
 import moment from "moment";
 
-const key = JSON.parse(fs.readFileSync('token.json', 'utf8'));
+import dotenv from 'dotenv';
+dotenv.config();
+
+const key = JSON.parse(process.env.GOOGLE_CREDS || "");
 const creds = google.auth.fromJSON(key);
 
 

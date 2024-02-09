@@ -1,10 +1,12 @@
+import dotenv from 'dotenv';
+dotenv.config();
 import express from 'express';
 import { Server } from 'socket.io';
 import bodyParser from 'body-parser';
 import mongoose from 'mongoose';
-import dotenv from 'dotenv';
 import cors from 'cors';
 import { createServer } from 'node:http';
+
 
 import auth_router from './routes/auth.js';
 import queue_general_router from './routes/queue_general.js'
