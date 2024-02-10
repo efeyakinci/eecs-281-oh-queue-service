@@ -5,6 +5,8 @@ import {OAuth2Client} from "google-auth-library";
 import {NextFunction, Request, Response} from "express";
 import axios from "axios";
 import {as_response, AuthEvents} from "../socket_handlers/queue_handlers.js";
+import queueManager from "../queue/QueueManager.js";
+
 
 const oauth2Client = new OAuth2Client(process.env.GOOGLE_OAUTH_CLIENT_ID);
 const PROFILE_ENDPOINT = "https://www.googleapis.com/userinfo/v2/me";
@@ -38,11 +40,12 @@ const get_uniqname_from_email = (email: string) => {
     return email.split('@')[0];
 }
 
-const get_jwt_token = (uniqname: string, full_name: string, email: string ) => {
+const get_jwt_token = (uniqname: string, full_name: string, email: string, is_staff: boolean ) => {
     if (process.env.JWT_SECRET == undefined) {
         throw new Error("JWT_SECRET undefined")
     }
-    return jwt.sign({ uniqname, full_name, email, is_staff: true }, process.env.JWT_SECRET, { expiresIn: '1d' });
+
+    return jwt.sign({ uniqname, full_name, email, is_staff }, process.env.JWT_SECRET, { expiresIn: '1d' });
 }
 
 const authenticate_with_google = async (access_token: string) => {
@@ -86,8 +89,10 @@ export const socket_google_login = async (socket: Socket, {access_token}: {acces
         const {email, full_name} = await authenticate_with_google(access_token);
         const uniqname = get_uniqname_from_email(email);
 
-        const token = get_jwt_token(uniqname, full_name, email);
-        const user: User = {uniqname, full_name, email, is_staff: true};
+        const is_staff = queueManager.user_is_staff(uniqname);
+
+        const token = get_jwt_token(uniqname, full_name, email, is_staff);
+        const user: User = {uniqname, full_name, email, is_staff};
 
         socket.auth_user = user;
 

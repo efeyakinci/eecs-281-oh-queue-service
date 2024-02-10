@@ -15,13 +15,15 @@ import {
     student_waiting_room_schema, subscribe_schema,
     token_login_schema, unsubscribe_schema
 } from "./handler_schemas.js";
+
+
 import {
     get_socket_user,
-    get_user_from_token,
     socket_google_login,
     socket_logout,
     socket_token_login
 } from "../services/authentication.js";
+
 import {Student} from "../queue/OHQueue.js";
 import { io } from "../services/server.js";
 import moment from "moment";
