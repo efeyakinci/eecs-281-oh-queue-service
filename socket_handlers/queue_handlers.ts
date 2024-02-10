@@ -1,7 +1,20 @@
 import { Socket } from "socket.io";
 
 import queue_manager from "../queue/QueueManager.js";
-import {queue_signup_schema} from "../verification/queue_verifiers.js";
+import {
+    broadcast_message_schema,
+    google_login_schema, heartbeat_schema,
+    help_student_schema,
+    queue_item_info_schema,
+    queue_leave_schema,
+    queue_signup_schema,
+    request_heartbeat_schema,
+    request_update_schema,
+    send_message_schema,
+    student_helped_schema,
+    student_waiting_room_schema, subscribe_schema,
+    token_login_schema, unsubscribe_schema
+} from "./handler_schemas.js";
 import {
     get_socket_user,
     get_user_from_token,
@@ -44,6 +57,7 @@ export enum QueueEvents {
     BROADCAST_MESSAGE = 'queue:broadcast_message',
     REQUEST_HEARTBEAT = 'queue:request_heartbeat',
     HEARTBEAT = 'queue:heartbeat',
+    ERROR = 'queue:error'
 }
 
 export enum AuthEvents {
@@ -81,49 +95,44 @@ const notify_items_updated = (queue_id: string, updated_uids: string[]) => {
     io.to(get_queue_room(queue_id)).emit(QueueEvents.DATA_UPDATE, {updated_uids});
 }
 
-const subscribe_handler = (socket: Socket, queue_id: string) => {
+const subscribe_handler = (socket: Socket, {queue_id}: {queue_id: string}) => {
     if (!queue_manager.queues.has(queue_id)) {
-        socket.emit(QueueEvents.SUBSCRIBE, {error: 'Queue not found'});
+        socket.emit(QueueEvents.ERROR, {error: 'Queue not found'});
         return;
     }
 
     socket.join(get_queue_room(queue_id));
 }
 
-const unsubscribe_handler = (socket: Socket, queue_id: string) => {
+const unsubscribe_handler = (socket: Socket, {queue_id}: {queue_id: string}) => {
     if (!queue_manager.queues.has(queue_id)) {
-        socket.emit(QueueEvents.UNSUBSCRIBE, {error: 'Queue not found'});
+        socket.emit(QueueEvents.ERROR, {error: 'Queue not found'});
         return;
     }
 
     socket.leave(get_queue_room(queue_id));
 }
 
-const join_queue_handler = async (socket: Socket, msg: any) => {
-    let validation;
-    try {
-        validation = await queue_signup_schema.validateAsync(msg);
-    } catch (error) {
-        socket.emit(as_response(QueueEvents.JOIN), {error: error});
-        return;
-    }
+const join_queue_handler = (socket: Socket, {queue_id, help_description, location, time_requested} : {
+    queue_id: string,
+    help_description: string,
+    location: string,
+    time_requested?: number
+}) => {
 
     const user = get_socket_user(socket);
 
     if (!user) {
-        socket.emit(as_response(QueueEvents.JOIN), {error: 'Unauthorized'});
+        socket.emit(QueueEvents.ERROR, {error: 'Unauthorized'})
         return;
     }
-
-    const {queue_id, help_description, location, time_requested} = validation;
 
     const queue = queue_manager.queues.get(queue_id);
 
     if (!queue) {
-        socket.emit(as_response(QueueEvents.JOIN), {error: 'Queue not found'});
+        socket.emit(QueueEvents.ERROR, {error: 'Queue not found'});
         return;
     }
-
 
     const now = moment();
 
@@ -144,7 +153,7 @@ const join_queue_handler = async (socket: Socket, msg: any) => {
     });
 
     if (queue.has_item_matching(s => s.uniqname === student.uniqname)) {
-        socket.emit(as_response(QueueEvents.JOIN), {error: 'Already in queue'});
+        socket.emit(QueueEvents.ERROR, {error: 'Already in queue'});
         return;
     }
 
@@ -158,39 +167,40 @@ const join_queue_handler = async (socket: Socket, msg: any) => {
     const updated_queue = queue.get_uid_to_indices();
 
     send_queue_update(queue_id, updated_queue, []);
+    console.log('Queue updated');
 }
 
 const leave_queue_handler = (socket: Socket, {queue_id, uid}: {queue_id: string, uid: string}) => {
     const user = get_socket_user(socket);
 
     if (!user) {
-        socket.emit(as_response(QueueEvents.LEAVE), {error: 'Unauthorized'});
+        socket.emit(QueueEvents.ERROR, {error: 'Unauthorized'});
         return;
     }
 
     const queue = queue_manager.queues.get(queue_id);
 
     if (!queue) {
-        socket.emit(as_response(QueueEvents.LEAVE), {error: 'Queue not found'});
+        socket.emit(QueueEvents.ERROR, {error: 'Queue not found'});
         return;
     }
 
     const student = queue.get_item_by_id(uid);
 
     if (!student) {
-        socket.emit(as_response(QueueEvents.LEAVE), {error: 'Student not found'});
+        socket.emit(QueueEvents.ERROR, {error: 'Student not found'});
         return;
     }
 
     if (student.uniqname !== user.uniqname) {
-        socket.emit(as_response(QueueEvents.LEAVE), {error: 'Unauthorized'});
+        socket.emit(QueueEvents.ERROR, {error: 'Unauthorized'});
         return;
     }
 
     const removed_student = queue.remove_item_from_queue(uid);
 
     if (!removed_student) {
-        socket.emit(as_response(QueueEvents.LEAVE), {error: 'Student not found'});
+        socket.emit(QueueEvents.ERROR, {error: 'Student not found'});
         return;
     }
 
@@ -208,7 +218,7 @@ const get_item_info_handler = (socket: Socket, {queue_id, uids} : {queue_id: str
     const queue = queue_manager.queues.get(queue_id);
 
     if (!queue) {
-        socket.emit(as_response(QueueEvents.ITEM_INFO), {error: 'Queue not found'});
+        socket.emit(QueueEvents.ERROR, {error: 'Queue not found'});
         return;
     }
 
@@ -221,7 +231,7 @@ const get_item_info_handler = (socket: Socket, {queue_id, uids} : {queue_id: str
         let student = queue.get_item_by_id(uid);
 
         if (!student) {
-            socket.emit(as_response(QueueEvents.ITEM_INFO), {error: 'Student not found'});
+            socket.emit(QueueEvents.ERROR, {error: 'Student not found'});
             return;
         }
 
@@ -241,11 +251,11 @@ const get_item_info_handler = (socket: Socket, {queue_id, uids} : {queue_id: str
     };
 }
 
-const request_queue_update_handler = (socket: Socket, queue_id: string) => {
+const request_queue_update_handler = (socket: Socket, {queue_id}: {queue_id: string}) => {
     const queue = queue_manager.queues.get(queue_id);
 
     if (!queue) {
-        socket.emit(QueueEvents.UPDATE, {error: 'Queue not found'});
+        socket.emit(QueueEvents.ERROR, {error: 'Queue not found'});
         return;
     }
 
@@ -263,16 +273,19 @@ const request_queue_update_handler = (socket: Socket, queue_id: string) => {
 const help_student_handler = (socket: Socket, {queue_id, uid, is_helped}: {queue_id: string, uid: string, is_helped: boolean}) => {
     const user = get_socket_user(socket);
     if (!user || !user.is_staff) {
+        socket.emit(QueueEvents.ERROR, {error: 'Unauthorized'});
         return;
     }
 
     const queue = queue_manager.queues.get(queue_id);
     if (!queue) {
+        socket.emit(QueueEvents.ERROR, {error: 'Queue not found'});
         return;
     }
 
     const student = queue.get_item_by_id(uid);
     if (!student) {
+        socket.emit(QueueEvents.ERROR, {error: 'Student not found'});
         return;
     }
 
@@ -291,24 +304,29 @@ const help_student_handler = (socket: Socket, {queue_id, uid, is_helped}: {queue
 const mark_student_waiting_handler = (socket: Socket, {queue_id, uid, is_in_waiting_room}: {queue_id: string, uid: string, is_in_waiting_room: boolean}) => {
     const user = get_socket_user(socket);
     if (!user) {
+        socket.emit(QueueEvents.ERROR, {error: 'Unauthorized'});
         return;
     }
 
     if (is_in_waiting_room && !user.is_staff) {
+        socket.emit(QueueEvents.ERROR, {error: 'You do not have permission to do that'});
         return;
     }
 
     const queue = queue_manager.queues.get(queue_id);
     if (!queue) {
+        socket.emit(QueueEvents.ERROR, {error: 'Queue not found'});
         return;
     }
 
     const student = queue.get_item_by_id(uid);
     if (!student) {
+        socket.emit(QueueEvents.ERROR, {error: 'Student not found'});
         return;
     }
 
     if (!is_in_waiting_room && !user.is_staff && user.uniqname !== student.uniqname) {
+        socket.emit(QueueEvents.ERROR, {error: 'You do not have permission to do that'});
         return;
     }
 
@@ -325,17 +343,20 @@ const mark_student_waiting_handler = (socket: Socket, {queue_id, uid, is_in_wait
 const student_helped_handler = (socket: Socket, {queue_id, uid}: {queue_id: string, uid: string}) => {
     const queue = queue_manager.queues.get(queue_id);
     if (!queue) {
+        socket.emit(QueueEvents.ERROR, {error: 'Queue not found'});
         return;
     }
 
     const student = queue.get_item_by_id(uid);
     if (!student) {
+        socket.emit(QueueEvents.ERROR, {error: 'Student not found'});
         return;
     }
 
     const user = get_socket_user(socket);
 
     if (!user || !user.is_staff) {
+        socket.emit(QueueEvents.ERROR, {error: 'Unauthorized'});
         return;
     }
 
@@ -351,11 +372,13 @@ const student_helped_handler = (socket: Socket, {queue_id, uid}: {queue_id: stri
 const send_message_handler = (socket: Socket, {queue_id, message, to_uniqname}: {queue_id: string, message: string, to_uniqname: string}) => {
     const user = get_socket_user(socket);
     if (!user || !user.is_staff) {
+        socket.emit(QueueEvents.ERROR, {error: 'Unauthorized'});
         return;
     }
 
     const queue = queue_manager.queues.get(queue_id);
     if (!queue) {
+        socket.emit(QueueEvents.ERROR, {error: 'Queue not found'});
         return;
     }
 
@@ -366,11 +389,13 @@ const send_message_handler = (socket: Socket, {queue_id, message, to_uniqname}: 
 const broadcast_message_handler = (socket: Socket, {queue_id, message}: {queue_id: string, message: string}) => {
     const user = get_socket_user(socket);
     if (!user || !user.is_staff) {
+        socket.emit(QueueEvents.ERROR, {error: 'Unauthorized'});
         return;
     }
 
     const queue = queue_manager.queues.get(queue_id);
     if (!queue) {
+        socket.emit(QueueEvents.ERROR, {error: 'Queue not found'});
         return;
     }
 
@@ -381,11 +406,13 @@ const broadcast_message_handler = (socket: Socket, {queue_id, message}: {queue_i
 const request_heartbeat_handler = (socket: Socket, {queue_id, time_to_respond}: {queue_id: string, time_to_respond: number}) => {
     const user = get_socket_user(socket);
     if (!user || !user.is_staff) {
+        socket.emit(QueueEvents.ERROR, {error: 'Unauthorized'});
         return;
     }
 
     const queue = queue_manager.queues.get(queue_id);
     if (!queue) {
+        socket.emit(QueueEvents.ERROR, {error: 'Queue not found'});
         return;
     }
 
@@ -413,6 +440,7 @@ const heartbeat_handler = (socket: Socket, {request_id}: {request_id: string}) =
     const student = get_socket_user(socket);
 
     if (!student) {
+        socket.emit(QueueEvents.ERROR, {error: 'Unauthorized'});
         return;
     }
 
@@ -420,25 +448,49 @@ const heartbeat_handler = (socket: Socket, {request_id}: {request_id: string}) =
 }
 
 export default function queue_handlers(socket: Socket) {
-    socket.on(QueueEvents.SUBSCRIBE, (queue_id: string) => {
-        subscribe_handler(socket, queue_id);
+    socket.on(QueueEvents.SUBSCRIBE, (msg: string) => {
+        const valid = subscribe_schema.validate(msg);
+
+        if (valid.error) {
+            socket.emit(QueueEvents.ERROR, {error: valid.error.message});
+            return;
+        }
+
+        subscribe_handler(socket, valid.value);
     });
 
-    socket.on(QueueEvents.UNSUBSCRIBE, (queue_id: string) => {
-        unsubscribe_handler(socket, queue_id);
+    socket.on(QueueEvents.UNSUBSCRIBE, (msg: string) => {
+        const valid = unsubscribe_schema.validate(msg);
+
+        if (valid.error) {
+            socket.emit(QueueEvents.ERROR, {error: valid.error.message});
+            return;
+        }
+
+        unsubscribe_handler(socket, valid.value);
     });
 
     socket.on(AuthEvents.GOOGLE_LOGIN, async (msg: any, callback) => {
-        const { access_token } = msg;
-        const user_data = await socket_google_login(socket, access_token);
+        const valid = google_login_schema.validate(msg);
+        if (valid.error) {
+            callback({error: valid.error.message});
+            return;
+        }
+
+        const user_data = await socket_google_login(socket, valid.value);
 
         callback(user_data);
     });
 
     socket.on(AuthEvents.TOKEN_LOGIN, (msg: any, callback) => {
-        const { token } = msg;
+        const valid = token_login_schema.validate(msg);
 
-        const user_data = socket_token_login(socket, token);
+        if (valid.error) {
+            callback({error: valid.error.message});
+            return;
+        }
+
+        const user_data = socket_token_login(socket, valid.value);
 
         if (socket.auth_user) {
             socket.join(get_user_room(socket.auth_user.uniqname));
@@ -453,62 +505,124 @@ export default function queue_handlers(socket: Socket) {
         socket_logout(socket);
     });
 
-    socket.on(QueueEvents.JOIN, async (msg: any) => {
-        await join_queue_handler(socket, msg);
+    socket.on(QueueEvents.JOIN, (msg: any) => {
+        const valid = queue_signup_schema.validate(msg);
+        if (valid.error) {
+            socket.emit(QueueEvents.ERROR, {error: valid.error.message});
+            return;
+        }
+
+        join_queue_handler(socket, valid.value);
     });
 
     socket.on(QueueEvents.LEAVE, (msg: any) => {
-        const { queue_id, uid } = msg;
-        leave_queue_handler(socket, {queue_id, uid});
+        const valid = queue_leave_schema.validate(msg);
+
+        if (valid.error) {
+            socket.emit(QueueEvents.ERROR, {error: valid.error.message});
+            return;
+        }
+
+        leave_queue_handler(socket, valid.value);
     });
 
     socket.on(QueueEvents.ITEM_INFO, (msg: any, callback) => {
-        const { queue_id, uids } = msg;
-        const items = get_item_info_handler(socket, {queue_id, uids});
+        const valid = queue_item_info_schema.validate(msg);
+
+        if (valid.error) {
+            callback({error: valid.error.message});
+            return;
+        }
+
+        const items = get_item_info_handler(socket, valid.value);
 
         callback(items);
     });
 
     socket.on(QueueEvents.REQUEST_UPDATE, (msg: any) => {
-        const { queue_id } = msg;
-        request_queue_update_handler(socket, queue_id);
+        const valid = request_update_schema.validate(msg);
+
+        if (valid.error) {
+            socket.emit(QueueEvents.ERROR, {error: valid.error.message});
+            return;
+        }
+        request_queue_update_handler(socket, valid.value);
     });
 
     socket.on(QueueEvents.HELP_STUDENT, (msg: any) => {
-        const { queue_id, uid, is_helped } = msg;
+        const valid = help_student_schema.validate(msg);
 
-        help_student_handler(socket, {queue_id, uid, is_helped});
+        if (valid.error) {
+            socket.emit(QueueEvents.ERROR, {error: valid.error.message});
+            return;
+        }
+
+        help_student_handler(socket, valid.value);
     });
 
     socket.on(QueueEvents.PIN_STUDENT, (msg: any) => {
-        const { queue_id, uid, is_in_waiting_room } = msg;
+        const valid = student_waiting_room_schema.validate(msg);
 
-        mark_student_waiting_handler(socket, {queue_id, uid, is_in_waiting_room});
+        if (valid.error) {
+            socket.emit(QueueEvents.ERROR, {error: valid.error.message});
+            return;
+        }
+
+        mark_student_waiting_handler(socket, valid.value);
     });
 
     socket.on(QueueEvents.STUDENT_HELPED, (msg: any) => {
-        const { queue_id, uid } = msg;
+        const valid = student_helped_schema.validate(msg);
 
-        student_helped_handler(socket, {queue_id, uid});
+        if (valid.error) {
+            socket.emit(QueueEvents.ERROR, {error: valid.error.message});
+            return;
+        }
+
+        student_helped_handler(socket, valid.value);
     });
 
     socket.on(QueueEvents.SEND_MESSAGE, (msg: any) => {
-        const { queue_id, message, to_uniqname } = msg;
-        send_message_handler(socket, {queue_id, message, to_uniqname});
+        const valid = send_message_schema.validate(msg);
+
+        if (valid.error) {
+            socket.emit(QueueEvents.ERROR, {error: valid.error.message});
+            return;
+        }
+
+        send_message_handler(socket, valid.value);
     });
 
     socket.on(QueueEvents.BROADCAST_MESSAGE, (msg: any) => {
-        const { queue_id, message } = msg;
-        broadcast_message_handler(socket, {queue_id, message});
+        const valid = broadcast_message_schema.validate(msg);
+
+        if (valid.error) {
+            socket.emit(QueueEvents.ERROR, {error: valid.error.message});
+            return;
+        }
+
+        broadcast_message_handler(socket, valid.value);
     });
 
     socket.on(QueueEvents.REQUEST_HEARTBEAT, (msg: any) => {
-        const { queue_id, time_to_respond } = msg;
-        request_heartbeat_handler(socket, {queue_id, time_to_respond});
+        const valid = request_heartbeat_schema.validate(msg);
+
+        if (valid.error) {
+            socket.emit(QueueEvents.ERROR, {error: valid.error.message});
+            return;
+        }
+
+        request_heartbeat_handler(socket, valid.value);
     });
 
     socket.on(QueueEvents.HEARTBEAT, (msg: any) => {
-        const { queue_id, request_id } = msg;
-        heartbeat_handler(socket, { request_id });
+        const valid = heartbeat_schema.validate(msg);
+
+        if (valid.error) {
+            socket.emit(QueueEvents.ERROR, {error: valid.error.message});
+            return;
+        }
+
+        heartbeat_handler(socket, valid.value);
     });
 }

@@ -81,7 +81,7 @@ export const get_user_from_token = (token: string): User | undefined => {
     return user;
 }
 
-export const socket_google_login = async (socket: Socket, access_token: string) => {
+export const socket_google_login = async (socket: Socket, {access_token}: {access_token: string}) => {
     try {
         const {email, full_name} = await authenticate_with_google(access_token);
         const uniqname = get_uniqname_from_email(email);
@@ -99,7 +99,7 @@ export const socket_google_login = async (socket: Socket, access_token: string) 
     }
 }
 
-export const socket_token_login = (socket: Socket, token: string) => {
+export const socket_token_login = (socket: Socket, {token}: {token: string}) => {
     const user = get_user_from_token(token);
 
     if (user === undefined) {

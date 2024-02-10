@@ -49,8 +49,8 @@ export class GoogleCalendar {
         } else {
             this.items = res.data.items.map((item: any) => {
                 return {
-                    start: item.start,
-                    end: item.end,
+                    start: item.start.dateTime,
+                    end: item.end.dateTime,
                     summary: item.summary
                 }
             });
@@ -78,23 +78,8 @@ export class OHSchedule {
     }
 
     get_current_status() {
-
-        const current_event: any | undefined = this.items.find((item) => {
-            const start = moment(item.start.dateTime);
-            const end = moment(item.end.dateTime);
-
-            return moment().isBetween(start, end);
-        });
-
-        const next_event: any | undefined = this.items.find((item) => {
-            const start = moment(item.start.dateTime);
-
-            return start.isAfter(moment());
-        });
-
         return {
-            current_event,
-            next_event
+            events: this.items.slice(0, 5)
         };
     }
 }

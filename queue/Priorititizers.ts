@@ -10,5 +10,6 @@ export class DefaultPrioritizer implements Prioritizer<Student> {
         const priority = time_requested * 2 - seconds_since_signup / 60;
 
         return priority;
+
     }
 }
