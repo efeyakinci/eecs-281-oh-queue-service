@@ -13,7 +13,7 @@ import {
     send_message_schema,
     student_helped_schema,
     student_waiting_room_schema, subscribe_schema,
-    token_login_schema, unsubscribe_schema
+    token_login_schema, unsubscribe_schema, update_self_schema
 } from "./handler_schemas.js";
 
 
@@ -24,10 +24,12 @@ import {
     socket_token_login
 } from "../services/authentication.js";
 
-import {Student} from "../queue/OHQueue.js";
+import {OHQueue, Student} from "../queue/OHQueue.js";
 import { io } from "../services/server.js";
 import moment from "moment";
 import crypto from "crypto";
+
+const MINUTE = 60 * 1000;
 
 export const as_response = (event_type: string) => {
     return event_type + ':response';
@@ -59,7 +61,8 @@ export enum QueueEvents {
     BROADCAST_MESSAGE = 'queue:broadcast_message',
     REQUEST_HEARTBEAT = 'queue:request_heartbeat',
     HEARTBEAT = 'queue:heartbeat',
-    ERROR = 'queue:error'
+    ERROR = 'queue:error',
+    UPDATE_SELF = 'queue:update_self'
 }
 
 export enum AuthEvents {
@@ -95,6 +98,14 @@ const send_queue_update = <T>(queue_id: string, updated_queue: {[k: string]: T},
 
 const notify_items_updated = (queue_id: string, updated_uids: string[]) => {
     io.to(get_queue_room(queue_id)).emit(QueueEvents.DATA_UPDATE, {updated_uids});
+}
+
+const update_student = (queue_id: string, queue: OHQueue<Student>, uid: string, updated_student: Student) => {
+    queue.update_item(uid, updated_student);
+    const updated_queue = queue.get_uid_to_indices();
+
+    notify_items_updated(queue_id, [uid]);
+    send_queue_update(queue_id, updated_queue);
 }
 
 const subscribe_handler = (socket: Socket, {queue_id}: {queue_id: string}) => {
@@ -435,7 +446,7 @@ const request_heartbeat_handler = (socket: Socket, {queue_id, time_to_respond}: 
         const removed_items = queue.remove_items_matching(s => users_at_risk.has(s.uniqname));
         const updated_queue = queue.get_uid_to_indices();
         send_queue_update(queue_id, updated_queue, removed_items.map(s => s.id));
-    }, time_to_respond * 1000);
+    }, time_to_respond * MINUTE);
 }
 
 const heartbeat_handler = (socket: Socket, {request_id}: {request_id: string}) => {
@@ -448,6 +459,38 @@ const heartbeat_handler = (socket: Socket, {request_id}: {request_id: string}) =
 
     pending_heartbeat_requests.get(request_id)?.delete(student.uniqname);
 }
+
+const update_student_handler = (socket: Socket, {queue_id, uid, updated_fields}: {queue_id: string, uid: string, updated_fields: {[k: string]: string}}) => {
+    const user = get_socket_user(socket);
+    if (!user) {
+        socket.emit(QueueEvents.ERROR, {error: 'Unauthorized'});
+        return;
+    }
+
+    const queue = queue_manager.queues.get(queue_id);
+
+    if (!queue) {
+        socket.emit(QueueEvents.ERROR, {error: 'Queue not found'});
+        return;
+    }
+
+    const current_student = queue.get_item_by_id(uid);
+
+    if (!current_student) {
+        socket.emit(QueueEvents.ERROR, {error: 'Student not found'});
+        return;
+    }
+
+    if (updated_fields['help_description']) {
+        current_student.attributes.help_description = updated_fields['help_description'];
+    }
+
+    if (updated_fields['location']) {
+        current_student.attributes.location = updated_fields['location'];
+    }
+
+    update_student(queue_id, queue, uid, current_student);
+};
 
 export default function queue_handlers(socket: Socket) {
     socket.on(QueueEvents.SUBSCRIBE, (msg: string) => {
@@ -626,5 +669,15 @@ export default function queue_handlers(socket: Socket) {
         }
 
         heartbeat_handler(socket, valid.value);
+    });
+
+    socket.on(QueueEvents.UPDATE_SELF, (msg: any) => {
+        const valid = update_self_schema.validate(msg);
+        if (valid.error) {
+            socket.emit(QueueEvents.ERROR, {error: valid.error.message});
+            return;
+        }
+
+        update_student_handler(socket, valid.value);
     });
 }

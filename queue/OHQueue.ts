@@ -1,8 +1,7 @@
 import moment from 'moment';
 import crypto from 'crypto';
 import {User} from "../request_types/request_types.js";
-import { OHSchedule} from "./OHSchedule.js";
-import * as fs from "node:fs";
+import {OHSchedule} from "./OHSchedule.js";
 
 interface StudentParams {
 
@@ -64,7 +63,7 @@ class QueueItem<T> {
     has_heartbeat: boolean;
     item: T;
 
-    constructor(item: T, priority: number) {
+    constructor(item: T) {
         this.id = crypto.randomBytes(16).toString('hex');
         this.item = item;
         this.has_heartbeat = true;
@@ -121,7 +120,7 @@ export class OHQueue<T> {
 
     enqueue(queuer: T): string {
         const priority = this.prioritizer.assign_priority(queuer);
-        const queue_item = new QueueItem(queuer, priority);
+        const queue_item = new QueueItem(queuer);
 
         this.queue.push(queue_item);
         this.reorder_queue();
@@ -207,5 +206,14 @@ export class OHQueue<T> {
 
     get_status() {
         return this.calendar.get_current_status();
+    }
+
+    find_item_where(pred: (item: T) => boolean): QueueItem<T> | undefined {
+        const item = this.queue.find((queue_item) => pred(queue_item.item));
+        if (!item) {
+            return undefined;
+        }
+
+        return item;
     }
 }
