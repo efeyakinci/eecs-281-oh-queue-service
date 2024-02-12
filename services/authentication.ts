@@ -6,6 +6,7 @@ import {NextFunction, Request, Response} from "express";
 import axios from "axios";
 import {as_response, AuthEvents} from "../socket_handlers/queue_handlers.js";
 import queueManager from "../queue/QueueManager.js";
+import {LoginEvent} from "../schemas/EventRecordSchema.js";
 
 
 const oauth2Client = new OAuth2Client(process.env.GOOGLE_OAUTH_CLIENT_ID);
@@ -112,6 +113,13 @@ export const socket_token_login = (socket: Socket, {token}: {token: string}) => 
     }
 
     socket.auth_user = user;
+
+    const login_event_log = new LoginEvent({
+            uniqname: user.uniqname,
+            time: new Date()
+    });
+    login_event_log.save();
+
     return {token, ...user};
 };
 
