@@ -28,6 +28,7 @@ import {OHQueue, Student} from "../queue/OHQueue.js";
 import { io } from "../services/server.js";
 import moment from "moment";
 import crypto from "crypto";
+import HelpedRecordModel from "../schemas/HelpedRecordSchema.js";
 
 const MINUTE = 60 * 1000;
 
@@ -126,7 +127,7 @@ const unsubscribe_handler = (socket: Socket, {queue_id}: {queue_id: string}) => 
     socket.leave(get_queue_room(queue_id));
 }
 
-const join_queue_handler = (socket: Socket, {queue_id, help_description, location, time_requested} : {
+const join_queue_handler = async (socket: Socket, {queue_id, help_description, location, time_requested} : {
     queue_id: string,
     help_description: string,
     location: string,
@@ -149,6 +150,15 @@ const join_queue_handler = (socket: Socket, {queue_id, help_description, locatio
 
     const now = moment();
 
+    // See if the student has been helped today
+    const student_helped_records = await HelpedRecordModel.findOne({
+        uniqname: user.uniqname,
+        helped_at: {
+            $gte: now.startOf('day').toDate(),
+            $lte: now.endOf('day').toDate()
+        }
+    });
+
     // @ts-ignore
     const student = new Student({
         name: user.full_name,
@@ -157,7 +167,8 @@ const join_queue_handler = (socket: Socket, {queue_id, help_description, locatio
             sign_up_time: now,
             time_requested: time_requested,
             help_description,
-            location
+            location,
+            helped_today: student_helped_records !== null
         },
         top_attributes: {
             being_helped: false,
@@ -373,7 +384,15 @@ const student_helped_handler = (socket: Socket, {queue_id, uid}: {queue_id: stri
         return;
     }
 
-    // TODO: Add logic to save that the student was helped
+    const helped_record = new HelpedRecordModel({
+        uniqname: student.uniqname,
+        queue_id: queue_id,
+        helped_at: moment().toDate()
+    });
+
+    helped_record.save().then(() => {
+        // TODO: Maybe do stuff? Idk.
+    });
 
     queue.remove_item_from_queue(uid);
     const updated_queue = queue.get_uid_to_indices();

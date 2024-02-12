@@ -80,6 +80,8 @@ const comparatorOverride = (item1: Student, item2: Student) => {
         return true;
     } else if (item1.top_attributes.being_helped && item2.top_attributes.in_waiting_room) {
         return true;
+    } else if (item1.attributes.helped_today && !item2.attributes.helped_today) {
+        return true;
     }
     return false;
 }

@@ -7,7 +7,8 @@ export class StudentAnonymiser implements Anonymiser<Student> {
         name: "Anonymous Student",
         uniqname: "",
         attributes: {
-            sign_up_time: student.attributes.sign_up_time
+            sign_up_time: student.attributes.sign_up_time,
+            helped_today: student.attributes.helped_today,
         },
         top_attributes: {
             being_helped: student.top_attributes.being_helped,

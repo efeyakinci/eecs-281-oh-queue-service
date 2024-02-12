@@ -45,7 +45,7 @@ const get_jwt_token = (uniqname: string, full_name: string, email: string, is_st
         throw new Error("JWT_SECRET undefined")
     }
 
-    return jwt.sign({ uniqname, full_name, email, is_staff }, process.env.JWT_SECRET, { expiresIn: '1d' });
+    return jwt.sign({ uniqname, full_name, email, is_staff }, process.env.JWT_SECRET, { expiresIn: '30d' });
 }
 
 const authenticate_with_google = async (access_token: string) => {

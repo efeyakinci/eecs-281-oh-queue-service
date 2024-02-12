@@ -13,6 +13,7 @@ export class Student {
     uniqname: string;
     attributes: {
         sign_up_time: moment.Moment;
+        helped_today: boolean;
         time_requested?: number;
         help_description?: string;
         location?: string;
