@@ -2,7 +2,7 @@ import { Socket } from "socket.io";
 
 import queue_manager from "../queue/QueueManager.js";
 import {
-    broadcast_message_schema,
+    broadcast_message_schema, clear_queue_schema,
     google_login_schema, heartbeat_schema,
     help_student_schema,
     queue_item_info_schema,
@@ -63,7 +63,8 @@ export enum QueueEvents {
     REQUEST_HEARTBEAT = 'queue:request_heartbeat',
     HEARTBEAT = 'queue:heartbeat',
     ERROR = 'queue:error',
-    UPDATE_SELF = 'queue:update_self'
+    UPDATE_SELF = 'queue:update_self',
+    CLEAR_QUEUE = 'queue:clear_queue'
 }
 
 export enum AuthEvents {
@@ -81,6 +82,7 @@ type QueueUpdate<T> = {
 
 const pending_heartbeat_requests = new Map<string, Set<string>>;
 const users_to_queues = new Map<string, Set<string>>();
+const user_to_active_session_counts = new Map<string, number>();
 
 const send_queue_update = <T>(queue_id: string, updated_queue: {[k: string]: T}, removable_uids: string[] = []) => {
     const queue = queue_manager.queues.get(queue_id);
@@ -173,7 +175,8 @@ const join_queue_handler = async (socket: Socket, {queue_id, help_description, l
         },
         top_attributes: {
             being_helped: false,
-            in_waiting_room: false
+            in_waiting_room: false,
+            is_online: true
         }
     });
 
@@ -295,6 +298,63 @@ const request_queue_update_handler = (socket: Socket, {queue_id}: {queue_id: str
 
 
     socket.emit(QueueEvents.UPDATE, queue_status);
+}
+
+const disconnect_handler = (socket: Socket) => {
+    const user = get_socket_user(socket);
+
+    if (!user) {
+        return;
+    }
+
+    const new_user_socket_count = io.sockets.adapter.rooms.get(get_user_room(user.uniqname))?.size || 0;
+
+    if (new_user_socket_count === 0) {
+        users_to_queues.get(user.uniqname)?.forEach(queue_id => {
+            const queue = queue_manager.queues.get(queue_id);
+            if (!queue) {
+                return;
+            }
+
+            const student_waiter = queue.get_item_matching(s => s.uniqname === user.uniqname);
+            if (!student_waiter) {
+                return;
+            }
+
+            student_waiter.item.top_attributes.is_online = false;
+
+            update_student(queue_id, queue, student_waiter.id, student_waiter.item);
+        });
+    }
+}
+
+const user_online_handler = (socket: Socket) => {
+    const user = get_socket_user(socket);
+
+    if (!user) {
+        return;
+    }
+
+    const new_user_socket_count = io.sockets.adapter.rooms.get(get_user_room(user.uniqname))?.size || 0;
+
+    if (new_user_socket_count === 1) {
+        users_to_queues.get(user.uniqname)?.forEach(queue_id => {
+            const queue = queue_manager.queues.get(queue_id);
+            if (!queue) {
+                return;
+            }
+
+            const student_waiter = queue.get_item_matching(s => s.uniqname === user.uniqname);
+            if (!student_waiter) {
+                return;
+            }
+
+            student_waiter.item.top_attributes.is_online = true;
+
+            update_student(queue_id, queue, student_waiter.id, student_waiter.item);
+        });
+    }
+
 }
 
 const help_student_handler = (socket: Socket, {queue_id, uid, is_helped}: {queue_id: string, uid: string, is_helped: boolean}) => {
@@ -514,6 +574,25 @@ const update_student_handler = (socket: Socket, {queue_id, uid, updated_fields}:
     update_student(queue_id, queue, uid, current_student);
 };
 
+const clear_queue_handler = (socket: Socket, {queue_id}: {queue_id: string}) => {
+    const user = get_socket_user(socket);
+    if (!user || !user.is_staff) {
+        socket.emit(QueueEvents.ERROR, {error: 'Unauthorized'});
+        return;
+    }
+
+    const queue = queue_manager.queues.get(queue_id);
+
+    if (!queue) {
+        socket.emit(QueueEvents.ERROR, {error: 'Queue not found'});
+        return;
+    }
+
+    const removed_ids = queue.clear_queue();
+    const updated_queue = queue.get_uid_to_indices();
+    send_queue_update(queue_id, updated_queue, removed_ids);
+}
+
 export default function queue_handlers(socket: Socket) {
     socket.on(QueueEvents.SUBSCRIBE, (msg: string) => {
         const valid = subscribe_schema.validate(msg);
@@ -561,6 +640,7 @@ export default function queue_handlers(socket: Socket) {
 
         if (socket.auth_user) {
             socket.join(get_user_room(socket.auth_user.uniqname));
+            user_online_handler(socket);
         }
         callback(user_data);
     });
@@ -701,5 +781,19 @@ export default function queue_handlers(socket: Socket) {
         }
 
         update_student_handler(socket, valid.value);
+    });
+
+    socket.on(QueueEvents.CLEAR_QUEUE, (msg: any) => {
+        const valid = clear_queue_schema.validate(msg);
+        if (valid.error) {
+            socket.emit(QueueEvents.ERROR, {error: valid.error.message});
+            return;
+        }
+
+        clear_queue_handler(socket, valid.value);
+    });
+
+    socket.on('disconnect', () => {
+        disconnect_handler(socket);
     });
 }

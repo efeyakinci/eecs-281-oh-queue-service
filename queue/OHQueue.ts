@@ -21,6 +21,7 @@ export class Student {
     top_attributes: {
         being_helped: boolean;
         in_waiting_room: boolean;
+        is_online: boolean;
     };
 
     constructor(params : Student) {
@@ -209,7 +210,14 @@ export class OHQueue<T> {
         return this.calendar.get_current_status();
     }
 
-    find_item_where(pred: (item: T) => boolean): QueueItem<T> | undefined {
+    clear_queue(): string[] {
+        const removed_ids = this.queue.map((queue_item) => queue_item.id);
+        this.queue = [];
+        this.uid_to_item.clear();
+        return removed_ids;
+    }
+
+    get_item_matching(pred: (item: T) => boolean): QueueItem<T> | undefined {
         const item = this.queue.find((queue_item) => pred(queue_item.item));
         if (!item) {
             return undefined;

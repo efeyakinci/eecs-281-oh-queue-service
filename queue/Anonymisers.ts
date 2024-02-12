@@ -12,7 +12,8 @@ export class StudentAnonymiser implements Anonymiser<Student> {
         },
         top_attributes: {
             being_helped: student.top_attributes.being_helped,
-            in_waiting_room: student.top_attributes.in_waiting_room
+            in_waiting_room: student.top_attributes.in_waiting_room,
+            is_online: student.top_attributes.is_online
         }
     });
 

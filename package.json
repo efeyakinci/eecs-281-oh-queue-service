@@ -1,7 +1,8 @@
 {
   "type": "module",
   "scripts": {
-    "start": "tsx app.ts"
+    "start": "tsx app.ts",
+    "dev": "tsx --watch app.ts"
   },
   "dependencies": {
     "@google-cloud/local-auth": "^2.1.0",

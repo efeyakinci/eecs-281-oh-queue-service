@@ -79,3 +79,7 @@ export const update_self_schema = Joi.object({
     uid: Joi.string().required(),
     updated_fields: Joi.object().pattern(Joi.string(), Joi.any()).required()
 })
+
+export const clear_queue_schema = Joi.object({
+    queue_id: Joi.string().required()
+});
