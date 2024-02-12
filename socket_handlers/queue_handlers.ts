@@ -149,6 +149,7 @@ const join_queue_handler = async (socket: Socket, {queue_id, help_description, l
     }
 
     const now = moment();
+    console.log(now)
 
     // See if the student has been helped today
     const student_helped_records = await HelpedRecordModel.findOne({
@@ -164,7 +165,7 @@ const join_queue_handler = async (socket: Socket, {queue_id, help_description, l
         name: user.full_name,
         uniqname: user.uniqname,
         attributes: {
-            sign_up_time: now,
+            sign_up_time: moment(),
             time_requested: time_requested,
             help_description,
             location,
@@ -175,6 +176,8 @@ const join_queue_handler = async (socket: Socket, {queue_id, help_description, l
             in_waiting_room: false
         }
     });
+
+    console.log(now);
 
     if (queue.has_item_matching(s => s.uniqname === student.uniqname)) {
         socket.emit(QueueEvents.ERROR, {error: 'Already in queue'});
