@@ -1,8 +1,10 @@
-import {Anonymiser, Student} from "./OHQueue.js";
+import {Anonymiser} from "./OHQueue.js";
+import {Student} from "./QueueTypes.js";
+import {User} from "../request_types/request_types.js";
 
 export class StudentAnonymiser implements Anonymiser<Student> {
-  anonymise(student: Student): Student {
-        // @ts-ignore
+
+    anonymise(student: Student): Student {
       const anonymous_student = new Student({
         name: "Anonymous Student",
         uniqname: "",
@@ -20,7 +22,14 @@ export class StudentAnonymiser implements Anonymiser<Student> {
     if (student.attributes.time_requested) {
         anonymous_student.attributes.time_requested = student.attributes.time_requested;
     }
-
     return anonymous_student;
   }
+
+    should_anonymise_to(item: Student, user: User | undefined): boolean {
+        if (!user) {
+            return false;
+        }
+
+        return !(user.uniqname === item.uniqname || user.is_staff);
+    }
 }

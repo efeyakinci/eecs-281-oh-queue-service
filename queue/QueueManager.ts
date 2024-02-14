@@ -1,9 +1,10 @@
-import {OHQueue, Student, StudentIsSameItem} from "./OHQueue.js";
+import {OHQueue} from "./OHQueue.js";
 import {DefaultPrioritizer} from "./Priorititizers.js";
 import {StudentAnonymiser} from "./Anonymisers.js";
 import {GoogleCalendar, OHSchedule} from "./OHSchedule.js";
 import fs from "node:fs";
 import * as path from "node:path";
+import {Student, StudentIsSameItem} from "./QueueTypes.js";
 
 class QueueManager {
  queues: Map<string, OHQueue<Student>> = new Map<string, OHQueue<Student>>();
@@ -95,15 +96,15 @@ for (const queue_name in queues) {
     });
 
 
-    // @ts-ignore
-    queueManager.add_queue(queue_name, new OHQueue<Student>(queues[queue_name].name,
-        new DefaultPrioritizer(),
-        schedule,
-        comparatorOverride,
-        new StudentAnonymiser(),
-        new StudentIsSameItem()))
+    queueManager.add_queue(queue_name, new OHQueue<Student>(queue_name, {
+        queue_name: queues[queue_name].name,
+        prioritizer: new DefaultPrioritizer(),
+        anonymiser: new StudentAnonymiser(),
+        is_same_item: new StudentIsSameItem(),
+        calendar: schedule,
+        override_less_than: comparatorOverride
+    }), queues[queue_name].staff_file);
 }
-
 
 console.log(`[Queue Manager] Initialized with ${queueManager.queues.size} queues.`)
 

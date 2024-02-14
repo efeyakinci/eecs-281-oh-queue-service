@@ -24,11 +24,12 @@ import {
     socket_token_login
 } from "../services/authentication.js";
 
-import {OHQueue, Student} from "../queue/OHQueue.js";
+import {OHQueue} from "../queue/OHQueue.js";
 import { io } from "../services/server.js";
 import moment from "moment";
 import crypto from "crypto";
 import HelpedRecordModel from "../schemas/HelpedRecordSchema.js";
+import {Student} from "../queue/QueueTypes.js";
 
 const MINUTE = 60 * 1000;
 
@@ -82,7 +83,6 @@ type QueueUpdate<T> = {
 
 const pending_heartbeat_requests = new Map<string, Set<string>>;
 const users_to_queues = new Map<string, Set<string>>();
-const user_to_active_session_counts = new Map<string, number>();
 
 const send_queue_update = <T>(queue_id: string, updated_queue: {[k: string]: T}, removable_uids: string[] = []) => {
     const queue = queue_manager.queues.get(queue_id);
@@ -162,7 +162,6 @@ const join_queue_handler = async (socket: Socket, {queue_id, help_description, l
         }
     });
 
-    // @ts-ignore
     const student = new Student({
         name: user.full_name,
         uniqname: user.uniqname,
@@ -266,7 +265,7 @@ const get_item_info_handler = (socket: Socket, {queue_id, uids} : {queue_id: str
         }
 
 
-        if (!student.is_visible_to(requester)) {
+        if (anonymiser.should_anonymise_to(student, requester)) {
             student = anonymiser.anonymise(student);
         }
 

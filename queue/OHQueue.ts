@@ -1,58 +1,13 @@
-import moment from 'moment';
 import crypto from 'crypto';
-import {User} from "../request_types/request_types.js";
 import {OHSchedule} from "./OHSchedule.js";
-
-interface StudentParams {
-
-}
-
-
-export class Student {
-    name: string;
-    uniqname: string;
-    attributes: {
-        sign_up_time: moment.Moment;
-        helped_today: boolean;
-        time_requested?: number;
-        help_description?: string;
-        location?: string;
-    };
-    top_attributes: {
-        being_helped: boolean;
-        in_waiting_room: boolean;
-        is_online: boolean;
-    };
-
-    constructor(params : Student) {
-        this.name = params.name;
-        this.uniqname = params.uniqname;
-        this.attributes = params.attributes;
-        this.top_attributes = params.top_attributes;
-    }
-
-    is_visible_to(user: User | undefined) {
-        if (!user) {
-            return false;
-        }
-
-        return user.uniqname === this.uniqname || user.is_staff;
-    }
-
-    toString() {
-        return `${this.name} (${this.uniqname}), ${this.attributes.help_description} ${this.top_attributes.being_helped ? "being helped" : "not being helped"}, ${this.top_attributes.in_waiting_room ? "pinned" : "not pinned"}`;
-    }
-}
-
-
-export class StudentIsSameItem implements IsSameItem<Student> {
-    is_same_item(item1: Student, item2: Student): boolean {
-        return item1.uniqname === item2.uniqname;
-    }
-}
+import mongoose from "mongoose";
+import QueueStateModel from "../schemas/QueueStateSchema.js";
+import {User} from "../request_types/request_types.js";
 
 export interface Anonymiser<T> {
     anonymise(item: T): T;
+
+    should_anonymise_to(item: T,user: User | undefined): boolean;
 }
 
 export interface IsSameItem<T> {
@@ -76,12 +31,17 @@ export interface Prioritizer<T> {
     assign_priority(item: T): number;
 }
 
-export interface QueueAddResult {
-    uid: string;
-    position: number;
+export interface QueueParams<T> {
+    queue_name: string;
+    prioritizer: Prioritizer<T>;
+    anonymiser: Anonymiser<T>;
+    is_same_item: IsSameItem<T>;
+    calendar: OHSchedule;
+    override_less_than: (item1: T, item2: T) => boolean;
 }
 
 export class OHQueue<T> {
+    queue_id: string;
     queue_name: string;
     queue: QueueItem<T>[];
     prioritizer: Prioritizer<T>;
@@ -91,37 +51,38 @@ export class OHQueue<T> {
 
     calendar: OHSchedule;
 
+    empty_queue_saved: boolean = false;
+
     item_comparator: (a: QueueItem<T>, b: QueueItem<T>) => number;
 
-    constructor(queue_name: string,
-                prioritizer: Prioritizer<T>,
-                calendar: OHSchedule,
-                overrideLessThan: (item1: T, item2: T) => boolean,
-                anonymiser: Anonymiser<T>,
-                is_same_item: IsSameItem<T>) {
+    constructor(queue_id: string, queue_params: QueueParams<T>) {
+        this.queue_id = queue_id;
         this.queue = [];
-        this.queue_name = queue_name;
-        this.prioritizer = prioritizer;
-        this.anonymiser = anonymiser;
-        this.is_same_item = is_same_item;
-        this.calendar = calendar;
+        this.queue_name = queue_params.queue_name;
+        this.prioritizer = queue_params.prioritizer;
+        this.anonymiser = queue_params.anonymiser;
+        this.is_same_item = queue_params.is_same_item;
+        this.calendar = queue_params.calendar;
         this.uid_to_item = new Map();
 
         this.item_comparator = (a: QueueItem<T>, b: QueueItem<T>) => {
-            if (overrideLessThan(a.item, b.item)) {
+            if (queue_params.override_less_than(a.item, b.item)) {
                 return 1;
             }
-            else if (overrideLessThan(b.item, a.item)) {
+            else if (queue_params.override_less_than(b.item, a.item)) {
                 return -1;
             }
             else {
                 return this.prioritizer.assign_priority(a.item) - this.prioritizer.assign_priority(b.item);
             }
         };
+
+        this.load_queue_state();
+
+        setInterval(this.save_queue_state.bind(this), 1000 * 60 * 5);
     }
 
     enqueue(queuer: T): string {
-        const priority = this.prioritizer.assign_priority(queuer);
         const queue_item = new QueueItem(queuer);
 
         this.queue.push(queue_item);
@@ -133,10 +94,6 @@ export class OHQueue<T> {
 
     reorder_queue() {
         this.queue.sort(this.item_comparator);
-    }
-
-    id_is_in_queue(id: string): boolean {
-        return this.uid_to_item.has(id);
     }
 
     has_item_matching(pred: (item: T) => boolean): boolean {
@@ -224,5 +181,37 @@ export class OHQueue<T> {
         }
 
         return item;
+    }
+
+    save_queue_state() {
+        if (this.queue.length === 0) {
+            if (this.empty_queue_saved) {
+                return;
+            }
+            this.empty_queue_saved = true;
+        } else {
+            this.empty_queue_saved = false;
+        }
+
+        QueueStateModel.findOneAndUpdate({queue_id: this.queue_id}, {
+            queue_id: this.queue_id,
+            state: JSON.stringify(this.queue)
+
+        }, {upsert: true}).then(() => {
+            console.log(`Saved queue state for ${this.queue_id}`);
+        });
+    }
+
+    load_queue_state() {
+        QueueStateModel.findOne({queue_id: this.queue_id}).then((queue_state) => {
+            if (!queue_state) {
+                return;
+            }
+
+            this.queue = JSON.parse(queue_state.state);
+            this.queue.forEach((item) => {
+                this.uid_to_item.set(item.id, item);
+            });
+        });
     }
 }

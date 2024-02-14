@@ -1,6 +1,7 @@
 import moment from "moment";
 
-import {Prioritizer, Student} from "./OHQueue.ts";
+import {Prioritizer} from "./OHQueue.ts";
+import {Student} from "./QueueTypes.js";
 
 export class DefaultPrioritizer implements Prioritizer<Student> {
     assign_priority(item: Student): number {
@@ -10,6 +11,5 @@ export class DefaultPrioritizer implements Prioritizer<Student> {
         const priority = time_requested * 0 - seconds_since_signup / 60;
 
         return priority;
-
     }
 }

@@ -34,7 +34,7 @@ export class GoogleCalendar {
     }
 
     private async update_events() {
-        const start_of_day = moment().startOf('day').toISOString();
+        const start_of_day = moment().subtract(1, 'minute').toISOString();
 
         const res = await calendar.events.list({
             calendarId: this.calendar_id,
@@ -79,7 +79,7 @@ export class OHSchedule {
 
     get_current_status() {
         return {
-            events: this.items.slice(0, 5)
+            events: this.items.slice(0, 10)
         };
     }
 }
