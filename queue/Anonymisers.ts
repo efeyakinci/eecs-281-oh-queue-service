@@ -27,7 +27,7 @@ export class StudentAnonymiser implements Anonymiser<Student> {
 
     should_anonymise_to(item: Student, user: User | undefined): boolean {
         if (!user) {
-            return false;
+            return true;
         }
 
         return !(user.uniqname === item.uniqname || user.is_staff);
