@@ -305,9 +305,9 @@ const disconnect_handler = (socket: Socket) => {
         return;
     }
 
-    const new_user_socket_count = io.sockets.adapter.rooms.get(get_user_room(user.uniqname))?.size || 0;
+    const new_user_socket_count = io.sockets.adapter.rooms.get(get_user_room(user.uniqname))?.size || 1;
 
-    if (new_user_socket_count === 0) {
+    if (new_user_socket_count === 1) {
         users_to_queues.get(user.uniqname)?.forEach(queue_id => {
             const queue = queue_manager.queues.get(queue_id);
             if (!queue) {
