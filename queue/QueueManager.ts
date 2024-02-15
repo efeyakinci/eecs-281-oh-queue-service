@@ -77,9 +77,9 @@ const queues: {[s: string]: {[s: string]: any}} = {
 const comparatorOverride = (item1: Student, item2: Student) => {
     if (item1.top_attributes.in_waiting_room != true && item2.top_attributes.in_waiting_room === true) {
         return true;
-    } else if (item1.top_attributes.being_helped != true && item2.top_attributes.being_helped === true) {
-        return true;
     } else if (item1.top_attributes.being_helped && item2.top_attributes.in_waiting_room) {
+        return true;
+    } else if (item1.top_attributes.being_helped != true && item2.top_attributes.being_helped === true) {
         return true;
     } else if (item1.attributes.helped_today && !item2.attributes.helped_today) {
         return true;

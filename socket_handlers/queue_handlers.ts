@@ -196,7 +196,6 @@ const join_queue_handler = async (socket: Socket, {queue_id, help_description, l
     const updated_queue = queue.get_uid_to_indices();
 
     send_queue_update(queue_id, updated_queue, []);
-    console.log('Queue updated');
 }
 
 const leave_queue_handler = (socket: Socket, {queue_id, uid}: {queue_id: string, uid: string}) => {
