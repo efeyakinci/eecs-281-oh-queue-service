@@ -99,12 +99,9 @@ export class OHSchedule {
 
     get_current_status(): OHScheduleStatus {
         const events: OHScheduleStatus = {
-            events: this.items.slice(0, 10)
+            events: this.items.slice(0, 10),
+            override: this.override
         };
-
-        if (this.override) {
-            events.override = this.override;
-        }
 
         return events;
     }
