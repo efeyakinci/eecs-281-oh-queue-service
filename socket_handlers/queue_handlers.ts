@@ -4,7 +4,7 @@ import queue_manager from "../queue/QueueManager.js";
 import {
     broadcast_message_schema, clear_queue_schema,
     google_login_schema, heartbeat_schema,
-    help_student_schema,
+    help_student_schema, override_queue_schedule_schema,
     queue_item_info_schema,
     queue_leave_schema,
     queue_signup_schema,
@@ -65,7 +65,8 @@ export enum QueueEvents {
     HEARTBEAT = 'queue:heartbeat',
     ERROR = 'queue:error',
     UPDATE_SELF = 'queue:update_self',
-    CLEAR_QUEUE = 'queue:clear_queue'
+    CLEAR_QUEUE = 'queue:clear_queue',
+    OVERRIDE_QUEUE_SCHEDULE = 'queue:override_queue_schedule'
 }
 
 export enum AuthEvents {
@@ -84,7 +85,7 @@ type QueueUpdate<T> = {
 const pending_heartbeat_requests = new Map<string, Set<string>>;
 const users_to_queues = new Map<string, Set<string>>();
 
-const send_queue_update = <T>(queue_id: string, updated_queue: {[k: string]: T}, removable_uids: string[] = []) => {
+const send_queue_update = <T>(queue_id: string, updated_queue: {[k: string]: T}, removable_uids: string[] = [], queue_status: any | undefined = undefined) => {
     const queue = queue_manager.queues.get(queue_id);
     if (!queue) {
         return;
@@ -93,8 +94,12 @@ const send_queue_update = <T>(queue_id: string, updated_queue: {[k: string]: T},
     const queue_update: QueueUpdate<T> = {
         queue_id,
         updated_queue,
-        removable_uids
+        removable_uids,
     };
+
+    if (queue_status) {
+        queue_update.queue_status = queue_status;
+    }
 
     io.to(get_queue_room(queue_id)).emit(QueueEvents.UPDATE, queue_update);
 }
@@ -150,8 +155,12 @@ const join_queue_handler = async (socket: Socket, {queue_id, help_description, l
         return;
     }
 
+    if (!queue.is_open()) {
+        socket.emit(QueueEvents.ERROR, {error: 'Queue is closed'});
+        return;
+    }
+
     const now = moment();
-    console.log(now)
 
     // See if the student has been helped today
     const student_helped_records = await HelpedRecordModel.findOne({
@@ -179,7 +188,6 @@ const join_queue_handler = async (socket: Socket, {queue_id, help_description, l
         }
     });
 
-    console.log(now);
 
     if (queue.has_item_matching(s => s.uniqname === student.uniqname)) {
         socket.emit(QueueEvents.ERROR, {error: 'Already in queue'});
@@ -591,6 +599,31 @@ const clear_queue_handler = (socket: Socket, {queue_id}: {queue_id: string}) => 
     send_queue_update(queue_id, updated_queue, removed_ids);
 }
 
+
+type QueueScheduleOverride = {
+    from_date_time: number;
+    to_date_time: number;
+    type: "open" | "close";
+}
+const override_queue_schedule_handler = (socket: Socket, {queue_id, override}: {queue_id: string, override: QueueScheduleOverride}) => {
+    const user = get_socket_user(socket);
+
+    if (!user || !user.is_staff) {
+        socket.emit(QueueEvents.ERROR, {error: 'Unauthorized'});
+        return;
+    }
+
+    const queue = queue_manager.queues.get(queue_id);
+    if (!queue) {
+        socket.emit(QueueEvents.ERROR, {error: 'Queue not found'});
+        return;
+    }
+
+    queue.add_schedule_override(override);
+    const updated_queue = queue.get_uid_to_indices();
+    send_queue_update(queue_id, updated_queue, [], queue.get_status());
+}
+
 export default function queue_handlers(socket: Socket) {
     socket.on(QueueEvents.SUBSCRIBE, (msg: string) => {
         const valid = subscribe_schema.validate(msg);
@@ -789,6 +822,16 @@ export default function queue_handlers(socket: Socket) {
         }
 
         clear_queue_handler(socket, valid.value);
+    });
+
+    socket.on(QueueEvents.OVERRIDE_QUEUE_SCHEDULE, (msg: any) => {
+        const valid = override_queue_schedule_schema.validate(msg);
+        if (valid.error) {
+            socket.emit(QueueEvents.ERROR, {error: valid.error.message});
+            return;
+        }
+
+        override_queue_schedule_handler(socket, valid.value);
     });
 
     socket.on('disconnect', () => {

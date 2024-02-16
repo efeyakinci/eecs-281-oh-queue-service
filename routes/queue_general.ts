@@ -1,8 +1,6 @@
-import express from "express";
-import { OHQueue } from "../queue/OHQueue.js";
+import express, {Request, Response} from "express";
 import queue_manager from "../queue/QueueManager.js";
-import { User } from "../request_types/request_types.js";
-import { Request, Response } from "express";
+import {User} from "../request_types/request_types.js";
 import {auth_middleware} from "../services/authentication.js";
 
 const router = express.Router();
@@ -34,7 +32,6 @@ router.get('/:id/queue', [auth_middleware], (req: Request, res: Response) => {
 
     const queue_items = queue.queue.map((item) => {
         if (req.user) {
-            console.log(req.user.is_staff, req.user.uniqname, item.item.uniqname)
             if (req.user.is_staff || req.user.uniqname === item.item.uniqname) {
                 return {uid: item.id, ...item.item}
             }

@@ -1,8 +1,8 @@
-import { google } from 'googleapis';
-import * as fs from "node:fs";
+import {google} from 'googleapis';
 import moment from "moment";
 
 import dotenv from 'dotenv';
+
 dotenv.config();
 
 const key = JSON.parse(process.env.GOOGLE_CREDS || "");
@@ -60,9 +60,21 @@ export class GoogleCalendar {
 
 }
 
+export type ScheduleOverride = {
+    from_date_time: number;
+    to_date_time: number;
+    type: "open" | "close";
+}
+
+export type OHScheduleStatus = {
+    events: any[];
+    override?: ScheduleOverride;
+}
+
 export class OHSchedule {
     calendar: GoogleCalendar;
-    items: any[];
+    items: {[key: string]: any}[];
+    override: ScheduleOverride | undefined;
     is_relevant_item: (item: any) => boolean;
 
     constructor({calendar, is_relevant_item}: {calendar: GoogleCalendar, is_relevant_item: (item: any) => boolean}) {
@@ -77,9 +89,33 @@ export class OHSchedule {
         this.items = this.calendar.get_events().filter(this.is_relevant_item);
     }
 
-    get_current_status() {
-        return {
+    set_schedule_override(override: ScheduleOverride) {
+        this.override = override;
+    }
+
+    clear_schedule_override() {
+        this.override = undefined;
+    }
+
+    get_current_status(): OHScheduleStatus {
+        const events: OHScheduleStatus = {
             events: this.items.slice(0, 10)
         };
+
+        if (this.override) {
+            events.override = this.override;
+        }
+
+        return events;
+    }
+
+    is_open() {
+        if (this.override && moment().isBetween(moment.unix(this.override.from_date_time), moment.unix(this.override.to_date_time))) {
+            return this.override.type === "open";
+        }
+
+        const current_event = this.items.find((item) => moment().isBetween(moment(item.start), moment(item.end)));
+
+        return current_event !== undefined;
     }
 }

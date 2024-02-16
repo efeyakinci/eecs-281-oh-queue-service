@@ -83,3 +83,12 @@ export const update_self_schema = Joi.object({
 export const clear_queue_schema = Joi.object({
     queue_id: Joi.string().required()
 });
+
+export const override_queue_schedule_schema = Joi.object({
+    queue_id: Joi.string().required(),
+    override: Joi.object({
+        from_date_time: Joi.number().required(),
+        to_date_time: Joi.number().required(),
+        type: Joi.string().valid("open", "close").required()
+    }).required()
+});

@@ -1,6 +1,5 @@
 import crypto from 'crypto';
-import {OHSchedule} from "./OHSchedule.js";
-import mongoose from "mongoose";
+import {OHSchedule, ScheduleOverride} from "./OHSchedule.js";
 import QueueStateModel from "../schemas/QueueStateSchema.js";
 import {User} from "../request_types/request_types.js";
 
@@ -40,6 +39,7 @@ export interface QueueParams<T> {
     override_less_than: (item1: T, item2: T) => boolean;
 }
 
+
 export class OHQueue<T> {
     queue_id: string;
     queue_name: string;
@@ -51,7 +51,7 @@ export class OHQueue<T> {
 
     calendar: OHSchedule;
 
-    empty_queue_saved: boolean = false;
+    queue_state_changed: boolean = false;
 
     item_comparator: (a: QueueItem<T>, b: QueueItem<T>) => number;
 
@@ -79,7 +79,7 @@ export class OHQueue<T> {
 
         this.load_queue_state();
 
-        setInterval(this.save_queue_state.bind(this), 1000 * 60 * 5);
+        setInterval(this.save_queue_state.bind(this), 1000 * 30);
     }
 
     enqueue(queuer: T): string {
@@ -89,11 +89,14 @@ export class OHQueue<T> {
         this.reorder_queue();
 
         this.uid_to_item.set(queue_item.id, queue_item);
+
+        this.queue_state_changed = true;
         return queue_item.id;
     }
 
     reorder_queue() {
         this.queue.sort(this.item_comparator);
+        this.queue_state_changed = true;
     }
 
     has_item_matching(pred: (item: T) => boolean): boolean {
@@ -109,6 +112,7 @@ export class OHQueue<T> {
         const deleted_item = this.queue.splice(index, 1);
         this.uid_to_item.delete(deleted_item[0].id);
 
+        this.queue_state_changed = true;
         return deleted_item[0];
     }
 
@@ -171,6 +175,8 @@ export class OHQueue<T> {
         const removed_ids = this.queue.map((queue_item) => queue_item.id);
         this.queue = [];
         this.uid_to_item.clear();
+
+        this.queue_state_changed = true;
         return removed_ids;
     }
 
@@ -183,15 +189,26 @@ export class OHQueue<T> {
         return item;
     }
 
+    is_open() {
+        return this.calendar.is_open();
+    }
+
+    add_schedule_override(override: ScheduleOverride) {
+        this.calendar.set_schedule_override(override);
+        this.queue_state_changed = true;
+    }
+
+    clear_schedule_override() {
+        this.calendar.clear_schedule_override();
+        this.queue_state_changed = true;
+    }
+
     save_queue_state() {
-        if (this.queue.length === 0) {
-            if (this.empty_queue_saved) {
-                return;
-            }
-            this.empty_queue_saved = true;
-        } else {
-            this.empty_queue_saved = false;
+        if (!this.queue_state_changed) {
+            return;
         }
+
+        this.queue_state_changed = false;
 
         QueueStateModel.findOneAndUpdate({queue_id: this.queue_id}, {
             queue_id: this.queue_id,
