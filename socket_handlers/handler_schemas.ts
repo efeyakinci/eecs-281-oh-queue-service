@@ -71,7 +71,7 @@ export const request_heartbeat_schema = Joi.object({
 });
 
 export const heartbeat_schema = Joi.object({
-    request_id: Joi.string().required()
+    request_id: Joi.array().items(Joi.string()).required(),
 });
 
 export const update_self_schema = Joi.object({

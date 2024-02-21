@@ -82,8 +82,16 @@ type QueueUpdate<T> = {
     queue_status?: {[k: string]: any}
 }
 
-const pending_heartbeat_requests = new Map<string, Set<string>>;
+type HeartbeatRequest = {
+    request_id: string;
+    users_at_risk: Set<string>;
+    expiration: Date;
+}
+
+const pending_heartbeat_requests = new Map<string, HeartbeatRequest>;
+
 const users_to_queues = new Map<string, Set<string>>();
+const users_to_outstanding_heartbeat_requests = new Map<string, Set<string>>();
 
 const send_queue_update = <T>(queue_id: string, updated_queue: {[k: string]: T}, removable_uids: string[] = [], queue_status: any | undefined = undefined) => {
     const queue = queue_manager.queues.get(queue_id);
@@ -524,10 +532,20 @@ const request_heartbeat_handler = (socket: Socket, {queue_id, time_to_respond}: 
     const request_id = crypto.randomBytes(16).toString('hex').toString();
 
     for (const uniqname of users_at_risk) {
-        io.to(get_user_room(uniqname)).emit(QueueEvents.REQUEST_HEARTBEAT, {queue_id, request_id, heartbeat_deadline});
+        io.to(get_user_room(uniqname)).emit(QueueEvents.REQUEST_HEARTBEAT, {request_id, heartbeat_deadline});
+
+        if (users_to_outstanding_heartbeat_requests.has(uniqname)) {
+            users_to_outstanding_heartbeat_requests.get(uniqname)?.add(request_id);
+        } else {
+            users_to_outstanding_heartbeat_requests.set(uniqname, new Set([request_id]));
+        }
     }
 
-    pending_heartbeat_requests.set(request_id, users_at_risk);
+    pending_heartbeat_requests.set(request_id, {
+        request_id,
+        users_at_risk,
+        expiration: heartbeat_deadline
+    });
 
 
     setTimeout(() => {
@@ -537,7 +555,7 @@ const request_heartbeat_handler = (socket: Socket, {queue_id, time_to_respond}: 
     }, time_to_respond * MINUTE);
 }
 
-const heartbeat_handler = (socket: Socket, {request_id}: {request_id: string}) => {
+const heartbeat_handler = (socket: Socket, {request_id}: {request_id: string[]}) => {
     const student = get_socket_user(socket);
 
     if (!student) {
@@ -545,7 +563,10 @@ const heartbeat_handler = (socket: Socket, {request_id}: {request_id: string}) =
         return;
     }
 
-    pending_heartbeat_requests.get(request_id)?.delete(student.uniqname);
+    request_id.forEach(request_id => {
+        pending_heartbeat_requests.get(request_id)?.users_at_risk?.delete(student.uniqname);
+        users_to_outstanding_heartbeat_requests.get(student.uniqname)?.delete(request_id);
+    })
 }
 
 const update_student_handler = (socket: Socket, {queue_id, uid, updated_fields}: {queue_id: string, uid: string, updated_fields: {[k: string]: string}}) => {
@@ -672,6 +693,16 @@ export default function queue_handlers(socket: Socket) {
         if (socket.auth_user) {
             socket.join(get_user_room(socket.auth_user.uniqname));
             user_online_handler(socket);
+
+            // TODO: This will only pop up one modal for the first heartbeat, so if the user has multiple heartbeat requests, they will only end up answering one.
+            if (users_to_outstanding_heartbeat_requests.has(socket.auth_user.uniqname)) {
+                for (const request_id of users_to_outstanding_heartbeat_requests.get(socket.auth_user.uniqname)!) {
+                    socket.emit(QueueEvents.REQUEST_HEARTBEAT, {
+                        request_id,
+                        heartbeat_deadline: pending_heartbeat_requests.get(request_id)!.expiration
+                    });
+                }
+            }
         }
         callback(user_data);
     });
