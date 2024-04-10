@@ -10,3 +10,5 @@ To run the backend, you must set the following environment variables:
 
 - `MONGO_URI`: This is the connection string for your MongoDB database. It should include the username, password, and the address of your MongoDB server. In this case, it connects to a MongoDB Atlas cluster.
 
+
+
