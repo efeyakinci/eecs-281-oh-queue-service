@@ -9,3 +9,4 @@ To run the backend, you must set the following environment variables:
 - `GOOGLE_CREDS`: This is a JSON string that contains your Google credentials. It includes the `type` of user, `client_id`, `client_secret`, and `refresh_token`. These are used for Google OAuth authentication.
 
 - `MONGO_URI`: This is the connection string for your MongoDB database. It should include the username, password, and the address of your MongoDB server. In this case, it connects to a MongoDB Atlas cluster.
+
