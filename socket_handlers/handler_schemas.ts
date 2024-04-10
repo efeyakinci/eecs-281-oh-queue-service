@@ -92,3 +92,7 @@ export const override_queue_schedule_schema = Joi.object({
         type: Joi.string().valid("open", "close").required()
     }).required()
 });
+
+export const sync_calendar_schema = Joi.object({
+    queue_id: Joi.string().required()
+});

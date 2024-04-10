@@ -12,7 +12,7 @@ import {
     request_update_schema,
     send_message_schema,
     student_helped_schema,
-    student_waiting_room_schema, subscribe_schema,
+    student_waiting_room_schema, subscribe_schema, sync_calendar_schema,
     token_login_schema, unsubscribe_schema, update_self_schema
 } from "./handler_schemas.js";
 
@@ -66,7 +66,8 @@ export enum QueueEvents {
     ERROR = 'queue:error',
     UPDATE_SELF = 'queue:update_self',
     CLEAR_QUEUE = 'queue:clear_queue',
-    OVERRIDE_QUEUE_SCHEDULE = 'queue:override_queue_schedule'
+    OVERRIDE_QUEUE_SCHEDULE = 'queue:override_queue_schedule',
+    SYNC_CALENDAR = 'queue:sync_calendar'
 }
 
 export enum AuthEvents {
@@ -645,6 +646,27 @@ const override_queue_schedule_handler = (socket: Socket, {queue_id, override}: {
     send_queue_update(queue_id, updated_queue, [], queue.get_status());
 }
 
+const sync_calendar_handler = (socket: Socket, {queue_id}: {queue_id: string}) => {
+    const user = get_socket_user(socket);
+
+    if (!user || !user.is_staff) {
+        socket.emit(QueueEvents.ERROR, {error: 'Unauthorized'});
+        return;
+    }
+
+    const queue = queue_manager.queues.get(queue_id);
+    if (!queue) {
+        socket.emit(QueueEvents.ERROR, {error: 'Queue not found'});
+        return;
+    }
+
+    queue.sync_calendar().then(() => {
+        const updated_queue = queue.get_uid_to_indices();
+        send_queue_update(queue_id, updated_queue, [], queue.get_status());
+    });
+
+}
+
 export default function queue_handlers(socket: Socket) {
     socket.on(QueueEvents.SUBSCRIBE, (msg: string) => {
         const valid = subscribe_schema.validate(msg);
@@ -863,6 +885,16 @@ export default function queue_handlers(socket: Socket) {
         }
 
         override_queue_schedule_handler(socket, valid.value);
+    });
+
+    socket.on(QueueEvents.SYNC_CALENDAR, (msg: any) => {
+        const valid = sync_calendar_schema.validate(msg);
+        if (valid.error) {
+            socket.emit(QueueEvents.ERROR, {error: valid.error.message});
+            return;
+        }
+
+        sync_calendar_handler(socket, valid.value);
     });
 
     socket.on('disconnect', () => {

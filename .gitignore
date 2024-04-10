@@ -1,4 +1,4 @@
 .env
 token.json
-
+.idea/
 node_modules/

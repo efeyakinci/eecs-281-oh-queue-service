@@ -231,4 +231,8 @@ export class OHQueue<T> {
             });
         });
     }
+
+    async sync_calendar() {
+        await this.calendar.sync_to_calendar();
+    }
 }

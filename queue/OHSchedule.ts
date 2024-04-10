@@ -33,7 +33,7 @@ export class GoogleCalendar {
         this.update_listeners.push(listener);
     }
 
-    private async update_events() {
+    async update_events() {
         const start_of_day = moment().subtract(1, 'minute').toISOString();
 
         const res = await calendar.events.list({
@@ -87,6 +87,10 @@ export class OHSchedule {
 
     update_items() {
         this.items = this.calendar.get_events().filter(this.is_relevant_item);
+    }
+
+    async sync_to_calendar() {
+        await this.calendar.update_events();
     }
 
     set_schedule_override(override: ScheduleOverride) {
