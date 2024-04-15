@@ -11,8 +11,6 @@ export class Student {
         time_requested?: number;
         help_description?: string;
         location?: string;
-    };
-    top_attributes: {
         being_helped: boolean;
         in_waiting_room: boolean;
         is_online: boolean;
@@ -22,11 +20,10 @@ export class Student {
         this.name = params.name;
         this.uniqname = params.uniqname;
         this.attributes = params.attributes;
-        this.top_attributes = params.top_attributes;
     }
 
     toString() {
-        return `${this.name} (${this.uniqname}), ${this.attributes.help_description} ${this.top_attributes.being_helped ? "being helped" : "not being helped"}, ${this.top_attributes.in_waiting_room ? "pinned" : "not pinned"}`;
+        return `${this.name} (${this.uniqname}), ${this.attributes.help_description} ${this.attributes.being_helped ? "being helped" : "not being helped"}, ${this.attributes.in_waiting_room ? "pinned" : "not pinned"}`;
     }
 }
 

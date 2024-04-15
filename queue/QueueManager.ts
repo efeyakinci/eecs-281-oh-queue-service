@@ -76,13 +76,13 @@ const queues: {[s: string]: {[s: string]: any}} = {
 
 const comparatorOverride = (item1: Student, item2: Student) => {
     const assign_priority = (item: Student) => {
-        if (item.top_attributes.in_waiting_room && item.top_attributes.being_helped) {
+        if (item.attributes.in_waiting_room && item.attributes.being_helped) {
             return 1;
         }
-        if (item.top_attributes.in_waiting_room) {
+        if (item.attributes.in_waiting_room) {
             return 0;
         }
-        if (item.top_attributes.being_helped) {
+        if (item.attributes.being_helped) {
             return 2;
         }
         if (item.attributes.helped_today) {

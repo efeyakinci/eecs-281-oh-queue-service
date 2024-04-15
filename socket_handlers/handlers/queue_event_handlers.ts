@@ -86,13 +86,11 @@ const join_queue_handler = async (socket: Socket, {queue_id, help_description, l
             time_requested: time_requested,
             help_description,
             location,
-            helped_today: student_helped_records !== null
-        },
-        top_attributes: {
+            helped_today: student_helped_records !== null,
             being_helped: false,
             in_waiting_room: false,
             is_online: true
-        }
+        },
     });
 
 
@@ -197,7 +195,7 @@ const disconnect_handler = (socket: Socket) => {
                 return;
             }
 
-            student_waiter.item.top_attributes.is_online = false;
+            student_waiter.item.attributes.is_online = false;
 
             update_student(queue_id, queue, student_waiter.id, student_waiter.item);
         });

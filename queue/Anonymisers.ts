@@ -11,12 +11,10 @@ export class StudentAnonymiser implements Anonymiser<Student> {
         attributes: {
             sign_up_time: student.attributes.sign_up_time,
             helped_today: student.attributes.helped_today,
+            being_helped: student.attributes.being_helped,
+            in_waiting_room: student.attributes.in_waiting_room,
+            is_online: student.attributes.is_online
         },
-        top_attributes: {
-            being_helped: student.top_attributes.being_helped,
-            in_waiting_room: student.top_attributes.in_waiting_room,
-            is_online: student.top_attributes.is_online
-        }
     });
 
     if (student.attributes.time_requested) {

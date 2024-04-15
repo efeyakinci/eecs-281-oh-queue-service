@@ -38,7 +38,7 @@ export const user_online_handler = (socket: Socket) => {
                 return;
             }
 
-            student_waiter.item.top_attributes.is_online = true;
+            student_waiter.item.attributes.is_online = true;
 
             update_student(queue_id, queue, student_waiter.id, student_waiter.item);
         });
@@ -49,7 +49,7 @@ export const user_online_handler = (socket: Socket) => {
 const help_student_handler = (socket: Socket, {queue_id, uid, is_helped}: {queue_id: string, uid: string, is_helped: boolean}) => {
     const {queue, student} = use_middleware(socket, {queue_id, student_uid: uid}, requires_staff, requires_queue, requires_student);
 
-    student.top_attributes.being_helped = is_helped;
+    student.attributes.being_helped = is_helped;
 
     queue.update_item(uid, student);
 
@@ -74,7 +74,7 @@ const mark_student_waiting_handler = (socket: Socket, {queue_id, uid, is_in_wait
         return;
     }
 
-    student.top_attributes.in_waiting_room = is_in_waiting_room;
+    student.attributes.in_waiting_room = is_in_waiting_room;
 
     queue.update_item(uid, student);
 
