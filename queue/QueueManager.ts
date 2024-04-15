@@ -95,7 +95,7 @@ const comparatorOverride = (item1: Student, item2: Student) => {
     const item1_priority = assign_priority(item1);
     const item2_priority = assign_priority(item2);
 
-    return item1_priority < item2_priority;
+    return item1_priority > item2_priority;
 }
 
 const eecs281_calendar = new GoogleCalendar(EECS281_calendar_id);
