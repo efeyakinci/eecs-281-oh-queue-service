@@ -1,12 +1,12 @@
 import dotenv from 'dotenv';
-import mongoose from "./services/mongo_service.js";
+import mongoose from "./services/mongo_service";
 dotenv.config();
 
 
-import auth_router from './routes/auth.js';
-import queue_general_router from './routes/queue_general.js'
-import set_queue_handlers from "./socket_handlers/queue_handlers.js";
-import {app, io, server} from './services/server.js';
+import auth_router from './routes/auth';
+import queue_general_router from './routes/queue_general'
+import set_queue_handlers from "./socket_handlers/queue_handlers";
+import {app, io, server} from './services/server';
 
 
 app.get('/', (req, res) => {

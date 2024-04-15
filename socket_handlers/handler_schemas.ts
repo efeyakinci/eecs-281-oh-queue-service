@@ -1,5 +1,7 @@
 import Joi from "joi";
 
+export const no_data_schema = Joi.any();
+
 export const subscribe_schema = Joi.object({
     queue_id: Joi.string().required()
 });
@@ -20,7 +22,7 @@ export const google_login_schema = Joi.object({
 });
 
 export const token_login_schema = Joi.object({
-    token: Joi.string().required()
+    token: Joi.string().required(),
 });
 
 export const queue_leave_schema = Joi.object({

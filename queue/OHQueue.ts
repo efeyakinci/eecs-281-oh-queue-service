@@ -1,7 +1,7 @@
 import crypto from 'crypto';
-import {OHSchedule, ScheduleOverride} from "./OHSchedule.js";
-import QueueStateModel from "../schemas/QueueStateSchema.js";
-import {User} from "../request_types/request_types.js";
+import {OHSchedule, ScheduleOverride} from "./OHSchedule";
+import QueueStateModel from "../schemas/QueueStateSchema";
+import {User} from "../request_types/request_types";
 
 export interface Anonymiser<T> {
     anonymise(item: T): T;

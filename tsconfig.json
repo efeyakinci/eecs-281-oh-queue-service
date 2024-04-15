@@ -1,17 +1,18 @@
 {
   "compilerOptions": {
-    "target": "es2018",
-    "module": "ES6",
-    "outDir": "dist",
-    "moduleResolution": "NodeNext",
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "outDir": ".",
+    "types": ["node"],
+    // add @ as root path
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    },
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true,
-    "allowImportingTsExtensions": true,
-    "skipLibCheck": true,
-    "allowJs": true
-  },
-  "ts-node": {
-    "esModuleInterop": true
+    "skipLibCheck": true
   }
 }

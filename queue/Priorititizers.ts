@@ -1,7 +1,7 @@
 import moment from "moment";
 
-import {Prioritizer} from "./OHQueue.ts";
-import {Student} from "./QueueTypes.js";
+import {Prioritizer} from "./OHQueue";
+import {Student} from "./QueueTypes";
 
 export class DefaultPrioritizer implements Prioritizer<Student> {
     assign_priority(item: Student): number {

@@ -1,10 +1,10 @@
-import {OHQueue} from "./OHQueue.js";
-import {DefaultPrioritizer} from "./Priorititizers.js";
-import {StudentAnonymiser} from "./Anonymisers.js";
-import {GoogleCalendar, OHSchedule} from "./OHSchedule.js";
+import {OHQueue} from "./OHQueue";
+import {DefaultPrioritizer} from "./Priorititizers";
+import {StudentAnonymiser} from "./Anonymisers";
+import {GoogleCalendar, OHSchedule} from "./OHSchedule";
 import fs from "node:fs";
 import * as path from "node:path";
-import {Student, StudentIsSameItem} from "./QueueTypes.js";
+import {Student, StudentIsSameItem} from "./QueueTypes";
 
 class QueueManager {
  queues: Map<string, OHQueue<Student>> = new Map<string, OHQueue<Student>>();

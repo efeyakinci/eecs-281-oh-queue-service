@@ -1,7 +1,7 @@
 import express, {Request, Response} from "express";
-import queue_manager from "../queue/QueueManager.js";
-import {User} from "../request_types/request_types.js";
-import {auth_middleware} from "../services/authentication.js";
+import queue_manager from "../queue/QueueManager";
+import {User} from "../request_types/request_types";
+import {auth_middleware} from "../services/authentication";
 
 const router = express.Router();
 

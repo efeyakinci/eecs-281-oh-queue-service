@@ -1,6 +1,6 @@
-import {Anonymiser} from "./OHQueue.js";
-import {Student} from "./QueueTypes.js";
-import {User} from "../request_types/request_types.js";
+import {Anonymiser} from "./OHQueue";
+import {Student} from "./QueueTypes";
+import {User} from "../request_types/request_types";
 
 export class StudentAnonymiser implements Anonymiser<Student> {
 

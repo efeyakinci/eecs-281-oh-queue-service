@@ -1,6 +1,6 @@
-import moment from "moment/moment.js";
-import {User} from "../request_types/request_types.js";
-import {IsSameItem} from "./OHQueue.js";
+import moment from "moment/moment";
+import {User} from "../request_types/request_types";
+import {IsSameItem} from "./OHQueue";
 
 export class Student {
     name: string;
