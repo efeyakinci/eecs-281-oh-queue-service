@@ -65,18 +65,7 @@ const override_queue_schedule_handler = (socket: Socket, {queue_id, override}: {
 }
 
 const sync_calendar_handler = (socket: Socket, {queue_id}: {queue_id: string}) => {
-    const user = get_socket_user(socket);
-
-    if (!user || !user.is_staff) {
-        socket.emit(QueueEvents.ERROR, {error: 'Unauthorized'});
-        return;
-    }
-
-    const queue = queue_manager.queues.get(queue_id);
-    if (!queue) {
-        socket.emit(QueueEvents.ERROR, {error: 'Queue not found'});
-        return;
-    }
+    const {queue} = use_middleware(socket, {queue_id}, requires_staff, requires_queue);
 
     queue.sync_calendar().then(() => {
         const updated_queue = queue.get_uid_to_indices();

@@ -75,16 +75,27 @@ const queues: {[s: string]: {[s: string]: any}} = {
 }
 
 const comparatorOverride = (item1: Student, item2: Student) => {
-    if (item1.top_attributes.in_waiting_room != true && item2.top_attributes.in_waiting_room === true) {
-        return true;
-    } else if (item1.top_attributes.being_helped && item2.top_attributes.in_waiting_room) {
-        return true;
-    } else if (item1.top_attributes.being_helped != true && item2.top_attributes.being_helped === true) {
-        return true;
-    } else if (item1.attributes.helped_today && !item2.attributes.helped_today) {
-        return true;
+    const assign_priority = (item: Student) => {
+        if (item.top_attributes.in_waiting_room && item.top_attributes.being_helped) {
+            return 1;
+        }
+        if (item.top_attributes.in_waiting_room) {
+            return 0;
+        }
+        if (item.top_attributes.being_helped) {
+            return 2;
+        }
+        if (item.attributes.helped_today) {
+            return 99;
+        }
+
+        return 50;
     }
-    return false;
+
+    const item1_priority = assign_priority(item1);
+    const item2_priority = assign_priority(item2);
+
+    return item1_priority < item2_priority;
 }
 
 const eecs281_calendar = new GoogleCalendar(EECS281_calendar_id);
