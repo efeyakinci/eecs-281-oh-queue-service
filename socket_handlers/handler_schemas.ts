@@ -98,3 +98,14 @@ export const override_queue_schedule_schema = Joi.object({
 export const sync_calendar_schema = Joi.object({
     queue_id: Joi.string().required()
 });
+
+export const add_announcement_schema = Joi.object({
+    queue_id: Joi.string().required(),
+    message: Joi.string().required(),
+    until: Joi.number().optional()
+});
+
+export const remove_announcement_schema = Joi.object({
+    queue_id: Joi.string().required(),
+    announcement_id: Joi.string().required()
+});

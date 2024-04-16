@@ -30,6 +30,8 @@ enum QueueEvents {
     CLEAR_QUEUE = 'queue:clear_queue',
     OVERRIDE_QUEUE_SCHEDULE = 'queue:override_queue_schedule',
     SYNC_CALENDAR = 'queue:sync_calendar',
+    ADD_ANNOUCEMENT = 'queue:add_announcement',
+    REMOVE_ANNOUCEMENT = 'queue:remove_announcement',
     CONNECT = 'connect',
     DISCONNECT = 'disconnect',
 }

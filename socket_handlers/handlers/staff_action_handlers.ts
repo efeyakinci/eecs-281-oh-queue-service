@@ -3,13 +3,17 @@ import {reduce_middleware, requires_queue, requires_staff, use_middleware} from 
 import {io} from "../../services/server";
 import {get_socket_user} from "../../services/authentication";
 import queue_manager from "../../queue/QueueManager";
+// @ts-ignore
+import { v4 as uuidv4 } from 'uuid';
 import {get_queue_room, QueueEvents, QueueHandler, send_queue_update} from "../handler_utils";
 import {
+    add_announcement_schema,
     broadcast_message_schema,
     clear_queue_schema,
-    override_queue_schedule_schema,
+    override_queue_schedule_schema, remove_announcement_schema,
     sync_calendar_schema
 } from "../handler_schemas";
+import {Announcement} from "../../queue/QueueTypes";
 
 const broadcast_message_handler = (socket: Socket, {queue_id, message}: {queue_id: string, message: string}) => {
     use_middleware(socket,
@@ -74,11 +78,39 @@ const sync_calendar_handler = (socket: Socket, {queue_id}: {queue_id: string}) =
 
 }
 
+const add_announcement_handler = (socket: Socket, {queue_id, message, until}: {queue_id: string, message: string, until?: number}) => {
+    const {queue} = use_middleware(socket, {queue_id}, requires_staff, requires_queue);
+
+    const announcement: Announcement = {
+        id: uuidv4(),
+        message,
+    }
+
+    if (until) {
+        announcement.until = until;
+    }
+
+    queue.add_announcement(announcement);
+    const updated_queue = queue.get_uid_to_indices();
+    send_queue_update(queue_id, updated_queue, [], queue.get_status());
+
+}
+
+const remove_announcement_handler = (socket: Socket, {queue_id, announcement_id}: {queue_id: string, announcement_id: string}) => {
+    const {queue} = use_middleware(socket, {queue_id}, requires_staff, requires_queue);
+
+    queue.remove_announcement(announcement_id);
+    const updated_queue = queue.get_uid_to_indices();
+    send_queue_update(queue_id, updated_queue, [], queue.get_status());
+}
+
 const handlers: QueueHandler<any, any>[] = [
     {event: QueueEvents.BROADCAST_MESSAGE, handler: broadcast_message_handler, validation_schema: broadcast_message_schema},
     {event: QueueEvents.CLEAR_QUEUE, handler: clear_queue_handler, validation_schema: clear_queue_schema},
     {event: QueueEvents.OVERRIDE_QUEUE_SCHEDULE, handler: override_queue_schedule_handler, validation_schema: override_queue_schedule_schema},
-    {event: QueueEvents.SYNC_CALENDAR, handler: sync_calendar_handler, validation_schema: sync_calendar_schema}
+    {event: QueueEvents.SYNC_CALENDAR, handler: sync_calendar_handler, validation_schema: sync_calendar_schema},
+    {event: QueueEvents.ADD_ANNOUCEMENT, handler: add_announcement_handler, validation_schema: add_announcement_schema},
+    {event: QueueEvents.REMOVE_ANNOUCEMENT, handler: remove_announcement_handler, validation_schema: remove_announcement_schema},
 ]
 
 export default handlers;

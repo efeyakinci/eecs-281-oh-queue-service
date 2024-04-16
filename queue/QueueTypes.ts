@@ -1,6 +1,7 @@
 import moment from "moment/moment";
 import {User} from "../request_types/request_types";
 import {IsSameItem} from "./OHQueue";
+import {OHScheduleStatus} from "./OHSchedule";
 
 export class Student {
     name: string;
@@ -33,3 +34,13 @@ export class StudentIsSameItem implements IsSameItem<Student> {
         return item1.uniqname === item2.uniqname;
     }
 }
+
+export interface Announcement {
+    id: string;
+    message: string,
+    until?: number
+}
+
+export type QueueStatus = {
+    announcements?: Announcement[];
+} & OHScheduleStatus;

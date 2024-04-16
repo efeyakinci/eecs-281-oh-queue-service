@@ -1,7 +1,8 @@
 import crypto from 'crypto';
 import {OHSchedule, ScheduleOverride} from "./OHSchedule";
-import QueueStateModel from "../schemas/QueueStateSchema";
+import QueueStateModel, {AnnouncementSchema} from "../schemas/QueueStateSchema";
 import {User} from "../request_types/request_types";
+import { Announcement} from "./QueueTypes";
 
 export interface Anonymiser<T> {
     anonymise(item: T): T;
@@ -48,6 +49,8 @@ export class OHQueue<T> {
     anonymiser: Anonymiser<T>;
     is_same_item: IsSameItem<T>;
     uid_to_item: Map<string, QueueItem<T>>;
+
+    annoucements: Map<string, Announcement> = new Map();
 
     calendar: OHSchedule;
 
@@ -168,7 +171,10 @@ export class OHQueue<T> {
     }
 
     get_status() {
-        return this.calendar.get_current_status();
+        return {
+            ...this.calendar.get_current_status(),
+            announcements: Array.from(this.annoucements.values())
+        };
     }
 
     clear_queue(): string[] {
@@ -208,10 +214,18 @@ export class OHQueue<T> {
             return;
         }
 
+        const now = Date.now();
+        this.annoucements.forEach((announcement, id) => {
+            if (announcement.until && announcement.until < now) {
+                this.annoucements.delete(id);
+            }
+        });
+
         this.queue_state_changed = false;
 
         QueueStateModel.findOneAndUpdate({queue_id: this.queue_id}, {
             queue_id: this.queue_id,
+            announcements: this.annoucements,
             state: JSON.stringify(this.queue)
 
         }, {upsert: true}).then(() => {
@@ -225,11 +239,25 @@ export class OHQueue<T> {
                 return;
             }
 
+            this.annoucements = queue_state.announcements as Map<string, Announcement>;
+
             this.queue = JSON.parse(queue_state.state);
             this.queue.forEach((item) => {
                 this.uid_to_item.set(item.id, item);
             });
         });
+    }
+
+    add_announcement(announement: Announcement) {
+        this.annoucements.set(announement.id, announement);
+    }
+
+    remove_announcement(id: string) {
+        this.annoucements.delete(id);
+    }
+
+    get_announcements() {
+        return this.annoucements;
     }
 
     async sync_calendar() {
