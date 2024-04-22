@@ -2,7 +2,7 @@ import {OHQueue} from "./OHQueue";
 import {DefaultPrioritizer} from "./Priorititizers";
 import {StudentAnonymiser} from "./Anonymisers";
 import {GoogleCalendar, OHSchedule} from "./OHSchedule";
-import fs from "node:fs";
+import * as fs from "node:fs";
 import * as path from "node:path";
 import {Student, StudentIsSameItem} from "./QueueTypes";
 
