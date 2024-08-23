@@ -6,9 +6,10 @@ import crypto from "crypto";
 import {io} from "../../services/server";
 import {pending_heartbeat_requests, users_to_outstanding_heartbeat_requests} from "../handler_data";
 import {get_user_room, MINUTE, QueueEvents, QueueHandler, send_queue_update} from "../handler_utils";
+import { heartbeat_schema, request_heartbeat_schema } from "../handler_schemas";
 
 const request_heartbeat_handler = (socket: Socket, {queue_id, time_to_respond}: {queue_id: string, time_to_respond: number}) => {
-    const { queue } = use_middleware(socket, {queue_id}, requires_staff, requires_queue);
+    const { queue } = use_middleware(socket, {queue_id}, requires_queue, requires_staff);
 
     const heartbeat_deadline = moment().add(time_to_respond, 'm').toDate();
     const users_at_risk = new Set<string>(
@@ -49,9 +50,9 @@ const heartbeat_handler = (socket: Socket, {request_id}: {request_id: string[]})
     })
 }
 
-const handlers: QueueHandler[] = [
-    {event: QueueEvents.REQUEST_HEARTBEAT, handler: request_heartbeat_handler},
-    {event: QueueEvents.HEARTBEAT, handler: heartbeat_handler}
+const handlers: QueueHandler<any>[] = [
+    {event: QueueEvents.REQUEST_HEARTBEAT, handler: request_heartbeat_handler, validation_schema: request_heartbeat_schema},
+    {event: QueueEvents.HEARTBEAT, handler: heartbeat_handler, validation_schema: heartbeat_schema}
 ]
 
 export default handlers;

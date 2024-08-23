@@ -42,7 +42,7 @@ const get_item_info_handler = (socket: Socket, {queue_id, uids} : {queue_id: str
     }
 }
 
-const handlers: QueueHandler<any, any>[] = [
+const handlers: QueueHandler<any>[] = [
     {event: QueueEvents.ITEM_INFO, handler: get_item_info_handler, validation_schema: queue_item_info_schema}
 ];
 

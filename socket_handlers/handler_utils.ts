@@ -89,7 +89,7 @@ const update_student = (queue_id: string, queue: OHQueue<Student>, uid: string, 
     send_queue_update(queue_id, updated_queue);
 }
 
-type QueueHandler<D, T extends D> = {
+type QueueHandler<D> = {
     event: QueueEvents | AuthEvents,
     handler: ((socket: Socket, data: D, listener: (data: any) => void) => void) | ((socket: Socket, data: D) => void),
     validation_schema: z.ZodSchema<D>

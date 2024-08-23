@@ -216,7 +216,7 @@ const disconnect_handler = (socket: Socket) => {
 
 
 
-const handlers: QueueHandler<any, any>[] = [
+const handlers: QueueHandler<any>[] = [
     {event: QueueEvents.SUBSCRIBE, handler: subscribe_handler, validation_schema: subscribe_schema},
     {event: QueueEvents.UNSUBSCRIBE, handler: unsubscribe_handler, validation_schema: unsubscribe_schema},
     {event: QueueEvents.JOIN, handler: join_queue_handler, validation_schema: queue_signup_schema},

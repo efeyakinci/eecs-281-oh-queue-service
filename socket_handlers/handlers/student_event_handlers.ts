@@ -150,7 +150,7 @@ const update_student_handler = (socket: Socket, {queue_id, uid, updated_fields}:
 };
 
 
-const handlers: QueueHandler<any, any>[] = [
+const handlers: QueueHandler<any>[] = [
     {event: QueueEvents.CONNECT, handler: user_online_handler, validation_schema: no_data_schema},
     {event: QueueEvents.HELP_STUDENT, handler: help_student_handler, validation_schema: help_student_schema},
     {event: QueueEvents.PIN_STUDENT, handler: mark_student_waiting_handler, validation_schema: student_waiting_room_schema},
