@@ -1,111 +1,115 @@
-import Joi from "joi";
+import { z } from "zod";
 
-export const no_data_schema = Joi.any();
+export const no_data_schema = z.any();
 
-export const subscribe_schema = Joi.object({
-    queue_id: Joi.string().required()
+export const subscribe_schema = z.object({
+    queue_id: z.string(),
 });
 
-export const unsubscribe_schema = Joi.object({
-    queue_id: Joi.string().required()
+export const unsubscribe_schema = z.object({
+    queue_id: z.string(),
 });
 
-export const queue_signup_schema = Joi.object({
-    queue_id: Joi.string().required(),
-    help_description: Joi.string().required(),
-    location: Joi.string().required(),
-    time_requested: Joi.number().optional()
+export const check_if_staff_schema = z.object({
+    queue_id: z.string(),
 });
 
-export const google_login_schema = Joi.object({
-    access_token: Joi.string().required()
+export const queue_signup_schema = z.object({
+    queue_id: z.string(),
+    help_description: z.string(),
+    location: z.string(),
+    time_requested: z.number().optional(),
 });
 
-export const token_login_schema = Joi.object({
-    token: Joi.string().required(),
+export const google_login_schema = z.object({
+    access_token: z.string(),
 });
 
-export const queue_leave_schema = Joi.object({
-    queue_id: Joi.string().required(),
-    uid: Joi.string().required()
+export const token_login_schema = z.object({
+    token: z.string(),
 });
 
-export const queue_item_info_schema = Joi.object({
-    queue_id: Joi.string().required(),
-    uids: Joi.array().items(Joi.string()).required()
+export const queue_leave_schema = z.object({
+    queue_id: z.string(),
+    uid: z.string(),
 });
 
-export const request_update_schema = Joi.object({
-    queue_id: Joi.string().required(),
+export const queue_item_info_schema = z.object({
+    queue_id: z.string(),
+    uids: z.array(z.string()),
 });
 
-export const help_student_schema = Joi.object({
-    queue_id: Joi.string().required(),
-    uid: Joi.string().required(),
-    is_helped: Joi.boolean().required()
+export const request_update_schema = z.object({
+    queue_id: z.string(),
 });
 
-export const student_waiting_room_schema = Joi.object({
-    queue_id: Joi.string().required(),
-    uid: Joi.string().required(),
-    is_in_waiting_room: Joi.boolean().required()
+export const help_student_schema = z.object({
+    queue_id: z.string(),
+    uid: z.string(),
+    is_helped: z.boolean(),
 });
 
-export const student_helped_schema = Joi.object({
-    queue_id: Joi.string().required(),
-    uid: Joi.string().required(),
+export const student_waiting_room_schema = z.object({
+    queue_id: z.string(),
+    uid: z.string(),
+    is_in_waiting_room: z.boolean(),
 });
 
-export const send_message_schema = Joi.object({
-    queue_id: Joi.string().required(),
-    to_uniqname: Joi.string().alphanum().required(),
-    message: Joi.string().required()
+export const student_helped_schema = z.object({
+    queue_id: z.string(),
+    uid: z.string(),
 });
 
-export const broadcast_message_schema = Joi.object({
-    queue_id: Joi.string().required(),
-    message: Joi.string().required()
+export const send_message_schema = z.object({
+    queue_id: z.string(),
+    to_uniqname: z.string().regex(/^\w+$/),
+    message: z.string(),
 });
 
-export const request_heartbeat_schema = Joi.object({
-    queue_id: Joi.string().required(),
-    time_to_respond: Joi.number().positive().required()
+export const broadcast_message_schema = z.object({
+    queue_id: z.string(),
+    message: z.string(),
 });
 
-export const heartbeat_schema = Joi.object({
-    request_id: Joi.array().items(Joi.string()).required(),
+export const request_heartbeat_schema = z.object({
+    queue_id: z.string(),
+    time_to_respond: z.number().positive(),
 });
 
-export const update_self_schema = Joi.object({
-    queue_id: Joi.string().required(),
-    uid: Joi.string().required(),
-    updated_fields: Joi.object().pattern(Joi.string(), Joi.any()).required()
-})
-
-export const clear_queue_schema = Joi.object({
-    queue_id: Joi.string().required()
+export const heartbeat_schema = z.object({
+    request_id: z.array(z.string()),
 });
 
-export const override_queue_schedule_schema = Joi.object({
-    queue_id: Joi.string().required(),
-    override: Joi.object({
-        from_date_time: Joi.number().required(),
-        to_date_time: Joi.number().required(),
-        type: Joi.string().valid("open", "close").required()
-    }).required()
+export const update_self_schema = z.object({
+    queue_id: z.string(),
+    uid: z.string(),
+    updated_fields: z.record(z.any()),
 });
 
-export const sync_calendar_schema = Joi.object({
-    queue_id: Joi.string().required()
+export const clear_queue_schema = z.object({
+    queue_id: z.string(),
 });
 
-export const add_announcement_schema = Joi.object({
-    queue_id: Joi.string().required(),
-    message: Joi.string().required(),
-    until: Joi.number().optional()
+export const override_queue_schedule_schema = z.object({
+    queue_id: z.string(),
+    override: z.object({
+        from_date_time: z.number(),
+        to_date_time: z.number(),
+        type: z.enum(["open", "close"]),
+    }),
 });
 
-export const remove_announcement_schema = Joi.object({
-    queue_id: Joi.string().required(),
-    announcement_id: Joi.string().required()
+export const sync_calendar_schema = z.object({
+    queue_id: z.string(),
+});
+
+export const add_announcement_schema = z.object({
+    queue_id: z.string(),
+    message: z.string(),
+    until: z.number().optional(),
+});
+
+export const remove_announcement_schema = z.object({
+    queue_id: z.string(),
+    announcement_id: z.string(),
 });

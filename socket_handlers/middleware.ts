@@ -81,11 +81,8 @@ function use_middleware<InitialInput extends Context, T extends Middleware<any, 
 //     return result;
 // }
 
-
-
-
 type RequiresUserOutput = {
-    user: User
+    user: User,
 } & Context
 const requires_user: Middleware<Context, RequiresUserOutput> = (socket, context) => {
     const user = get_socket_user(socket);
@@ -101,13 +98,17 @@ const requires_user: Middleware<Context, RequiresUserOutput> = (socket, context)
 
 }
 
+type RequiresStaffInput = {
+    queue: OHQueue<Student>
+} & Context
+
 type RequiresStaffOutput = {
     user: User
 } & Context
-const requires_staff: Middleware<Context, RequiresStaffOutput> = (socket, context) => {
+const requires_staff: Middleware<RequiresStaffInput, RequiresStaffOutput> = (socket, context) => {
     const user = get_socket_user(socket);
 
-    if (!user || !user.is_staff) {
+    if (!user || !context.queue.is_user_staff(user.uniqname)) {
         throw new Error('User is not staff');
     }
 
@@ -116,7 +117,6 @@ const requires_staff: Middleware<Context, RequiresStaffOutput> = (socket, contex
         user
     };
 }
-
 
 type RequiresQueueInput = {
     queue_id: string

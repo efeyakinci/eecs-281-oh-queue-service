@@ -2,77 +2,33 @@ import {OHQueue} from "./OHQueue";
 import {DefaultPrioritizer} from "./Priorititizers";
 import {StudentAnonymiser} from "./Anonymisers";
 import {GoogleCalendar, OHSchedule} from "./OHSchedule";
+import { z } from "zod";
+import YAML from "yaml";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import {Student, StudentIsSameItem} from "./QueueTypes";
+import { queue_schema, QueueData, staff_schema, StaffData } from "./QueueSchemas";
 
 class QueueManager {
  queues: Map<string, OHQueue<Student>> = new Map<string, OHQueue<Student>>();
- staff: Set<string> = new Set<string>();
 
- constructor(staff_file: string = "staff.txt") {
-     const staff_file_path = process.cwd() + "/data/" + path.basename(staff_file);
-
-     fs.readFile(staff_file_path, 'utf8', (err, data) => {
-         if (err) {
-             console.error(err);
-             return;
-         }
-         data.split("\n").forEach((line) => {
-             this.staff.add(line);
-         });
-     });
- }
-
- add_queue(queue_name: string, queue: OHQueue<Student>, staff_file: string): void {
-     this.queues.set(queue_name, queue);
- }
-
- user_is_staff(user: string): boolean {
-    return this.staff.has(user);
+ add_queue(queue: OHQueue<Student>): void {
+     this.queues.set(queue.queue_id, queue);
  }
 }
-
-const EECS281_calendar_id = "umich.edu_c8sngos30gjedcda3s9raemaqg@group.calendar.google.com";
-
 
 
 const queueManager = new QueueManager();
 
-const queues: {[s: string]: {[s: string]: any}} = {
-    "eecs281-bbb": {
-        name: "BBB Office Hours",
-        staff_file: "staff.txt",
-        is_relevant_schedule_item: (item: any) => {
-            const lower_summary = item.summary.toLowerCase();
-            return lower_summary.includes("bbb") && !lower_summary.includes("proffice");
-        }
-    },
-    "eecs281-ugli": {
-        name: "UGLI Office Hours",
-        staff_file: "staff.txt",
-        is_relevant_schedule_item: (item: any) => {
-            const lower_summary = item.summary.toLowerCase();
-            return lower_summary.includes("ugli") && !lower_summary.includes("proffice");
-        }
-    },
-    "eecs281-virt": {
-        name: "Virtual Office Hours",
-        staff_file: "staff.txt",
-        is_relevant_schedule_item: (item: any) => {
-            const lower_summary = item.summary.toLowerCase();
-            return lower_summary.includes("virtual") && !lower_summary.includes("proffice");
-        }
-    },
-    "eecs281-proffice": {
-        name: "Proffice Hours",
-        staff_file: "staff.txt",
-        is_relevant_schedule_item: (item: any) => {
-            const lower_summary = item.summary.toLowerCase();
-            return lower_summary.includes("proffice");
-        }
-    }
-}
+
+const queue_data_path = path.join(process.cwd(), "data", "queues", "queues.yaml");
+const staff_file_path = path.join(process.cwd(), "data", "staff-files", "staff.yaml");
+
+const queue_data: QueueData = YAML.parse(fs.readFileSync(queue_data_path, 'utf8'));
+const staff_data: StaffData = YAML.parse(fs.readFileSync(staff_file_path, 'utf8'));
+
+queue_schema.parse(queue_data);
+staff_schema.parse(staff_data);
 
 const comparatorOverride = (item1: Student, item2: Student) => {
     const assign_priority = (item: Student) => {
@@ -98,24 +54,29 @@ const comparatorOverride = (item1: Student, item2: Student) => {
     return item1_priority > item2_priority;
 }
 
-const eecs281_calendar = new GoogleCalendar(EECS281_calendar_id);
+Object.entries(queue_data).forEach(([class_id, queue_class]) => {
+    Object.entries(queue_class.queues).forEach(([queue_id, queue]) => {
+        const schedule = new OHSchedule({
+            calendar: new GoogleCalendar(queue.calendar_url), 
+            event_regex: new RegExp(queue.schedule_item_regex)
+        });
 
-for (const queue_name in queues) {
-    const schedule = new OHSchedule({
-        calendar: eecs281_calendar,
-        is_relevant_item: queues[queue_name]['is_relevant_schedule_item']
+        if (!staff_data[class_id]) {
+            throw new Error(`No staff entry found for ${class_id}`);
+        }
+
+        queueManager.add_queue(new OHQueue<Student>(`${class_id}-${queue_id}`, {
+            class_name: queue_class.name,
+            queue_name: queue.name,
+            prioritizer: new DefaultPrioritizer(),
+            anonymiser: new StudentAnonymiser(),
+            is_same_item: new StudentIsSameItem(),
+            calendar: schedule,
+            override_less_than: comparatorOverride,
+            staff: new Set(staff_data[class_id])
+        }));
     });
-
-
-    queueManager.add_queue(queue_name, new OHQueue<Student>(queue_name, {
-        queue_name: queues[queue_name].name,
-        prioritizer: new DefaultPrioritizer(),
-        anonymiser: new StudentAnonymiser(),
-        is_same_item: new StudentIsSameItem(),
-        calendar: schedule,
-        override_less_than: comparatorOverride
-    }), queues[queue_name].staff_file);
-}
+});
 
 console.log(`[Queue Manager] Initialized with ${queueManager.queues.size} queues.`)
 

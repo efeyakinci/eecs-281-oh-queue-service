@@ -75,18 +75,18 @@ export class OHSchedule {
     calendar: GoogleCalendar;
     items: {[key: string]: any}[];
     override: ScheduleOverride | undefined;
-    is_relevant_item: (item: any) => boolean;
+    event_regex: RegExp;
 
-    constructor({calendar, is_relevant_item}: {calendar: GoogleCalendar, is_relevant_item: (item: any) => boolean}) {
+    constructor({calendar, event_regex}: {calendar: GoogleCalendar, event_regex: RegExp}) {
         this.calendar = calendar;
-        this.is_relevant_item = is_relevant_item;
+        this.event_regex = event_regex;
         this.items = [];
 
         this.calendar.add_update_listener(this.update_items.bind(this));
     }
 
     update_items() {
-        this.items = this.calendar.get_events().filter(this.is_relevant_item);
+        this.items = this.calendar.get_events().filter((event) => this.event_regex.test(event.summary));
     }
 
     async sync_to_calendar() {

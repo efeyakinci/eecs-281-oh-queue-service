@@ -32,23 +32,27 @@ export interface Prioritizer<T> {
 }
 
 export interface QueueParams<T> {
+    class_name: string;
     queue_name: string;
     prioritizer: Prioritizer<T>;
     anonymiser: Anonymiser<T>;
     is_same_item: IsSameItem<T>;
     calendar: OHSchedule;
     override_less_than: (item1: T, item2: T) => boolean;
+    staff: Set<string>;
 }
 
 
 export class OHQueue<T> {
-    queue_id: string;
-    queue_name: string;
+    readonly queue_id: string;
+    readonly class_name: string;
+    readonly queue_name: string;
     queue: QueueItem<T>[];
     prioritizer: Prioritizer<T>;
     anonymiser: Anonymiser<T>;
     is_same_item: IsSameItem<T>;
     uid_to_item: Map<string, QueueItem<T>>;
+    staff: Set<string>;
 
     annoucements: Map<string, Announcement> = new Map();
 
@@ -61,12 +65,14 @@ export class OHQueue<T> {
     constructor(queue_id: string, queue_params: QueueParams<T>) {
         this.queue_id = queue_id;
         this.queue = [];
+        this.class_name = queue_params.class_name;
         this.queue_name = queue_params.queue_name;
         this.prioritizer = queue_params.prioritizer;
         this.anonymiser = queue_params.anonymiser;
         this.is_same_item = queue_params.is_same_item;
         this.calendar = queue_params.calendar;
         this.uid_to_item = new Map();
+        this.staff = queue_params.staff;
 
         this.item_comparator = (a: QueueItem<T>, b: QueueItem<T>) => {
             if (queue_params.override_less_than(a.item, b.item)) {
@@ -262,5 +268,9 @@ export class OHQueue<T> {
 
     async sync_calendar() {
         await this.calendar.sync_to_calendar();
+    }
+
+    is_user_staff(uniqname: string): boolean {
+        return this.staff.has(uniqname);
     }
 }

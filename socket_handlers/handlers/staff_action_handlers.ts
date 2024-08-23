@@ -25,18 +25,7 @@ const broadcast_message_handler = (socket: Socket, {queue_id, message}: {queue_i
 }
 
 const clear_queue_handler = (socket: Socket, {queue_id}: {queue_id: string}) => {
-    const user = get_socket_user(socket);
-    if (!user || !user.is_staff) {
-        socket.emit(QueueEvents.ERROR, {error: 'Unauthorized'});
-        return;
-    }
-
-    const queue = queue_manager.queues.get(queue_id);
-
-    if (!queue) {
-        socket.emit(QueueEvents.ERROR, {error: 'Queue not found'});
-        return;
-    }
+    const { queue } = use_middleware(socket, {queue_id}, requires_queue, requires_staff);
 
     const removed_ids = queue.clear_queue();
     const updated_queue = queue.get_uid_to_indices();
@@ -50,18 +39,7 @@ type QueueScheduleOverride = {
     type: "open" | "close";
 }
 const override_queue_schedule_handler = (socket: Socket, {queue_id, override}: {queue_id: string, override: QueueScheduleOverride}) => {
-    const user = get_socket_user(socket);
-
-    if (!user || !user.is_staff) {
-        socket.emit(QueueEvents.ERROR, {error: 'Unauthorized'});
-        return;
-    }
-
-    const queue = queue_manager.queues.get(queue_id);
-    if (!queue) {
-        socket.emit(QueueEvents.ERROR, {error: 'Queue not found'});
-        return;
-    }
+    const { queue } = use_middleware(socket, {queue_id}, requires_queue, requires_staff);
 
     queue.add_schedule_override(override);
     const updated_queue = queue.get_uid_to_indices();
@@ -69,7 +47,7 @@ const override_queue_schedule_handler = (socket: Socket, {queue_id, override}: {
 }
 
 const sync_calendar_handler = (socket: Socket, {queue_id}: {queue_id: string}) => {
-    const {queue} = use_middleware(socket, {queue_id}, requires_staff, requires_queue);
+    const {queue} = use_middleware(socket, {queue_id}, requires_queue, requires_staff);
 
     queue.sync_calendar().then(() => {
         const updated_queue = queue.get_uid_to_indices();
@@ -79,7 +57,7 @@ const sync_calendar_handler = (socket: Socket, {queue_id}: {queue_id: string}) =
 }
 
 const add_announcement_handler = (socket: Socket, {queue_id, message, until}: {queue_id: string, message: string, until?: number}) => {
-    const {queue} = use_middleware(socket, {queue_id}, requires_staff, requires_queue);
+    const {queue} = use_middleware(socket, {queue_id}, requires_queue, requires_staff);
 
     const announcement: Announcement = {
         id: uuidv4(),
@@ -97,7 +75,7 @@ const add_announcement_handler = (socket: Socket, {queue_id, message, until}: {q
 }
 
 const remove_announcement_handler = (socket: Socket, {queue_id, announcement_id}: {queue_id: string, announcement_id: string}) => {
-    const {queue} = use_middleware(socket, {queue_id}, requires_staff, requires_queue);
+    const {queue} = use_middleware(socket, {queue_id}, requires_queue, requires_staff);
 
     queue.remove_announcement(announcement_id);
     const updated_queue = queue.get_uid_to_indices();

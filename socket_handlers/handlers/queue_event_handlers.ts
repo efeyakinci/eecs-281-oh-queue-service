@@ -1,7 +1,7 @@
 import {Socket} from "socket.io";
 import queue_manager from "../../queue/QueueManager";
 import {get_socket_user} from "../../services/authentication";
-import moment from "moment/moment";
+import moment from "moment";
 import HelpedRecordModel from "../../schemas/HelpedRecordSchema";
 import {Student} from "../../queue/QueueTypes";
 import {
@@ -15,6 +15,7 @@ import {
 import {users_to_queues} from "../handler_data";
 import {io} from "../../services/server";
 import {
+    check_if_staff_schema,
     no_data_schema,
     queue_leave_schema,
     queue_signup_schema,
@@ -22,6 +23,7 @@ import {
     subscribe_schema,
     unsubscribe_schema
 } from "../handler_schemas";
+import { requires_queue, requires_user, use_middleware } from "../middleware";
 
 const subscribe_handler = (socket: Socket, {queue_id}: {queue_id: string}) => {
     if (!queue_manager.queues.has(queue_id)) {
@@ -163,15 +165,25 @@ const request_queue_update_handler = (socket: Socket, {queue_id}: {queue_id: str
         return;
     }
 
+    const user = get_socket_user(socket);
+
     const queue_status = {
         queue_id,
         updated_queue: queue.get_uid_to_indices(),
         removable_uids: [],
-        queue_status: queue.get_status()
+        queue_status: queue.get_status(),
     };
 
 
     socket.emit(QueueEvents.UPDATE, queue_status);
+}
+
+const check_if_staff_handler = (socket: Socket, {queue_id}: {queue_id: string}, callback: (is_staff: boolean) => void) => {
+    const { queue } = use_middleware(socket, {queue_id}, requires_queue);
+
+    const user = get_socket_user(socket);
+
+    callback(user != undefined && queue.is_user_staff(user.uniqname));
 }
 
 const disconnect_handler = (socket: Socket) => {
@@ -210,6 +222,7 @@ const handlers: QueueHandler<any, any>[] = [
     {event: QueueEvents.JOIN, handler: join_queue_handler, validation_schema: queue_signup_schema},
     {event: QueueEvents.LEAVE, handler: leave_queue_handler, validation_schema: queue_leave_schema},
     {event: QueueEvents.REQUEST_UPDATE, handler: request_queue_update_handler, validation_schema: request_update_schema},
+    {event: QueueEvents.CHECK_IF_STAFF, handler: check_if_staff_handler, validation_schema: check_if_staff_schema},
     {event: QueueEvents.DISCONNECT, handler: disconnect_handler, validation_schema: no_data_schema},
 ]
 

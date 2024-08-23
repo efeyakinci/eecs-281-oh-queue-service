@@ -1,0 +1,36 @@
+eecs-281:
+    name: "EECS 281"
+    queues:
+      bbb-office-hours:
+        name: "BBB Office Hours"
+        staff_file: "281-staff.txt"
+        schedule_item_regex: "(?=.*\\bbbb\\b)(?!.*\\bproffice\\b)"
+        calendar_url: umich.edu_c8sngos30gjedcda3s9raemaqg@group.calendar.google.com
+
+      ugli-office-hours:
+        name: "UGLI Office Hours"
+        staff_file: "281-staff.txt"
+        schedule_item_regex: "(?=.*\\bugli\\b)(?!.*\\bproffice\\b)"
+        calendar_url: umich.edu_c8sngos30gjedcda3s9raemaqg@group.calendar.google.com
+
+      virtual-office-hours:
+        name: "Virtual Office Hours"
+        staff_file: "281-staff.txt"
+        schedule_item_regex: "(?=.*\\bvirtual\\b)(?!.*\\bproffice\\b)"
+        calendar_url: umich.edu_c8sngos30gjedcda3s9raemaqg@group.calendar.google.com
+
+      proffice-hours:
+        name: "Proffice Hours"
+        staff_file: "281-staff.txt"
+        schedule_item_regex: "(?=.*\\bproffice\\b)"
+        calendar_url: umich.edu_c8sngos30gjedcda3s9raemaqg@group.calendar.google.com
+
+eecs-489:
+    name: "EECS 489"
+    queues:
+      bbb-office-hours:
+        name: "BBB Office Hours"
+        staff_file: "281-staff.txt"
+        schedule_item_regex: "(?=.*\\bbbb\\b)"
+        calendar_url: umich.edu_c8sngos30gjedcda3s9raemaqg@group.calendar.google.com
+

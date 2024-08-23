@@ -1,6 +1,6 @@
 import queue_manager from "../queue/QueueManager";
-import joi from "joi";
 import {io} from "../services/server";
+import { z } from "zod";
 import {OHQueue} from "../queue/OHQueue";
 import {Student} from "../queue/QueueTypes";
 import {Socket} from "socket.io";
@@ -32,6 +32,7 @@ enum QueueEvents {
     SYNC_CALENDAR = 'queue:sync_calendar',
     ADD_ANNOUCEMENT = 'queue:add_announcement',
     REMOVE_ANNOUCEMENT = 'queue:remove_announcement',
+    CHECK_IF_STAFF = 'queue:check_staff',
     CONNECT = 'connect',
     DISCONNECT = 'disconnect',
 }
@@ -90,8 +91,8 @@ const update_student = (queue_id: string, queue: OHQueue<Student>, uid: string, 
 
 type QueueHandler<D, T extends D> = {
     event: QueueEvents | AuthEvents,
-    handler: (socket: Socket, data: D, listener?: (data: any) => void) => void,
-    validation_schema: joi.Schema<T>
+    handler: ((socket: Socket, data: D, listener: (data: any) => void) => void) | ((socket: Socket, data: D) => void),
+    validation_schema: z.ZodSchema<D>
 }
 
 export {

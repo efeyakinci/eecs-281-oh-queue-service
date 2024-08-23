@@ -3,7 +3,7 @@ import {requires_queue, requires_staff, requires_student, requires_user, use_mid
 import {io} from "../../services/server";
 import queue_manager from "../../queue/QueueManager";
 import HelpedRecordModel from "../../schemas/HelpedRecordSchema";
-import moment from "moment/moment";
+import  moment from "moment";
 import {get_socket_user} from "../../services/authentication";
 import {
     get_user_room,
@@ -47,7 +47,7 @@ export const user_online_handler = (socket: Socket) => {
 }
 
 const help_student_handler = (socket: Socket, {queue_id, uid, is_helped}: {queue_id: string, uid: string, is_helped: boolean}) => {
-    const {queue, student} = use_middleware(socket, {queue_id, student_uid: uid}, requires_staff, requires_queue, requires_student);
+    const {queue, student} = use_middleware(socket, {queue_id, student_uid: uid}, requires_queue, requires_staff, requires_student);
 
     student.attributes.being_helped = is_helped;
 
@@ -62,14 +62,21 @@ const help_student_handler = (socket: Socket, {queue_id, uid, is_helped}: {queue
 }
 
 const mark_student_waiting_handler = (socket: Socket, {queue_id, uid, is_in_waiting_room}: {queue_id: string, uid: string, is_in_waiting_room: boolean}) => {
-    const {queue, user, student} = use_middleware(socket, {queue_id, student_uid: uid}, requires_user, requires_queue, requires_student);
+    const {queue, user} = use_middleware(socket, {queue_id, student_uid: uid}, requires_user, requires_queue);
 
-    if (is_in_waiting_room && !user.is_staff) {
+    const student = queue.get_item_by_id(uid);
+
+    if (!student) {
+        socket.emit(QueueEvents.ERROR, {error: 'Student not found'});
+        return;
+    }
+
+    if (is_in_waiting_room && !queue.is_user_staff(user.uniqname)) {
         socket.emit(QueueEvents.ERROR, {error: 'You do not have permission to do that'});
         return;
     }
 
-    if (!is_in_waiting_room && !user.is_staff && user.uniqname !== student.uniqname) {
+    if (!is_in_waiting_room && !queue.is_user_staff(user.uniqname) && user.uniqname !== student.uniqname) {
         socket.emit(QueueEvents.ERROR, {error: 'You do not have permission to do that'});
         return;
     }
@@ -85,7 +92,7 @@ const mark_student_waiting_handler = (socket: Socket, {queue_id, uid, is_in_wait
 }
 
 const student_helped_handler = (socket: Socket, {queue_id, uid}: {queue_id: string, uid: string}) => {
-    const {queue, student} = use_middleware(socket, {queue_id, student_uid: uid}, requires_staff, requires_queue, requires_student);
+    const {queue, student} = use_middleware(socket, {queue_id, student_uid: uid}, requires_queue, requires_staff, requires_student);
 
     const helped_record = new HelpedRecordModel({
         uniqname: student.uniqname,
@@ -105,7 +112,7 @@ const student_helped_handler = (socket: Socket, {queue_id, uid}: {queue_id: stri
 }
 
 const send_message_handler = (socket: Socket, {queue_id, message, to_uniqname}: {queue_id: string, message: string, to_uniqname: string}) => {
-    use_middleware(socket, {queue_id}, requires_staff, requires_queue);
+    use_middleware(socket, {queue_id}, requires_user, requires_queue, requires_staff);
 
     io.to(get_user_room(to_uniqname)).emit(QueueEvents.RECEIVE_MESSAGE, {queue_id, message});
 }

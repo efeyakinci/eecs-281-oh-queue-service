@@ -23,11 +23,11 @@ export class StudentAnonymiser implements Anonymiser<Student> {
     return anonymous_student;
   }
 
-    should_anonymise_to(item: Student, user: User | undefined): boolean {
+    should_anonymise_to(item: Student, user: User | undefined, is_staff = false): boolean {
         if (!user) {
             return true;
         }
 
-        return !(user.uniqname === item.uniqname || user.is_staff);
+        return !(user.uniqname === item.uniqname || is_staff);
     }
 }

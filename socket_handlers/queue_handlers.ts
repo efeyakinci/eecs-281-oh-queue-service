@@ -11,7 +11,7 @@ export default function queue_handlers(socket: Socket) {
     handlers.forEach(({event, handler, validation_schema}) => {
         socket.on(event, (data: any, callback?: (data: any) => void) => {
             if (validation_schema) {
-                const {error} = validation_schema.validate(data);
+                const {error} = validation_schema.safeParse(data);
                 if (error) {
                     console.error(`Error during validation of ${event}: ${error.message}`);
                     socket.emit(QueueEvents.ERROR, {error: error.message});

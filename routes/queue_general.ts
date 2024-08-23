@@ -1,7 +1,7 @@
-import express, {Request, Response} from "express";
+import express, { Request, Response } from "express";
 import queue_manager from "../queue/QueueManager";
-import {User} from "../request_types/request_types";
-import {auth_middleware} from "../services/authentication";
+import { User } from "../request_types/request_types";
+import { auth_middleware } from "../services/authentication";
 
 const router = express.Router();
 
@@ -16,33 +16,23 @@ declare global {
 
 
 router.get('/', (req, res) => {
-   const queue_ids = Array.from(queue_manager.queues.keys());
-   const queue_map = Object.fromEntries(queue_ids.map((id) => [id, queue_manager.queues.get(id)?.queue_name]));
-    res.json(queue_map);
-});
+    const queue_ids = Array.from(queue_manager.queues.keys());
 
-router.get('/:id/queue', [auth_middleware], (req: Request, res: Response) => {
-    const queue_id = req.params.id;
-    const queue = queue_manager.queues.get(queue_id);
-    if (!queue) {
-        return res.status(404).json({message: 'Queue not found'});
-    }
+    const queues: {[key: string]: { queue_name: string, class_name: string }} = {};
 
-    const anonymiser = queue.get_anonymiser();
-
-    const queue_items = queue.queue.map((item) => {
-        if (req.user) {
-            if (req.user.is_staff || req.user.uniqname === item.item.uniqname) {
-                return {uid: item.id, ...item.item}
-            }
+    for (const queue_id of queue_ids) {
+        const queue = queue_manager.queues.get(queue_id);
+        if (!queue) {
+            continue;
         }
 
-        return {uid: item.id, ...anonymiser.anonymise(item.item)};
-    });
+        queues[queue_id] = {
+            queue_name: queue.queue_name,
+            class_name: queue.class_name
+        };
+    }
 
-    res.json({
-        waiters: queue_items
-    });
+    res.json(queues);
 });
 
 

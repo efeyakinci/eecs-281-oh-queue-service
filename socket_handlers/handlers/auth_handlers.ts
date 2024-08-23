@@ -19,10 +19,8 @@ const socket_google_login_handler = async (socket: Socket, {access_token}: {acce
         const {email, full_name} = await authenticate_with_google(access_token);
         const uniqname = get_uniqname_from_email(email);
 
-        const is_staff = queueManager.user_is_staff(uniqname);
-
-        const token = get_jwt_token(uniqname, full_name, email, is_staff);
-        const user: User = {uniqname, full_name, email, is_staff};
+        const token = get_jwt_token(uniqname, full_name, email);
+        const user: User = {uniqname, full_name, email};
 
         socket.auth_user = user;
 
@@ -65,13 +63,15 @@ const socket_token_login_handler = (socket: Socket, {token}: {token: string}, ca
         user_online_handler(socket);
 
         // TODO: This will only pop up one modal for the first heartbeat, so if the user has multiple heartbeat requests, they will only end up answering one.
-        if (users_to_outstanding_heartbeat_requests.has(socket.auth_user.uniqname)) {
-            for (const request_id of users_to_outstanding_heartbeat_requests.get(socket.auth_user.uniqname)!) {
-                socket.emit(QueueEvents.REQUEST_HEARTBEAT, {
-                    request_id,
-                    heartbeat_deadline: pending_heartbeat_requests.get(request_id)!.expiration
-                });
+        for (const request_id of users_to_outstanding_heartbeat_requests.get(socket.auth_user.uniqname) || []) {
+            if (!request_id) {
+                continue;
             }
+
+            socket.emit(QueueEvents.REQUEST_HEARTBEAT, {
+                request_id,
+                heartbeat_deadline: pending_heartbeat_requests.get(request_id)!.expiration
+            });
         }
     }
 

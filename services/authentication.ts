@@ -9,7 +9,7 @@ import axios from "axios";
 const oauth2Client = new OAuth2Client(process.env.GOOGLE_OAUTH_CLIENT_ID);
 const PROFILE_ENDPOINT = "https://www.googleapis.com/userinfo/v2/me";
 
-export const auth_middleware = (req: Request & {user: User}, res: Response, next: NextFunction) => {
+export const auth_middleware = (req: Request, res: Response, next: NextFunction) => {
     const auth_header = req.headers.authorization;
 
     if (!auth_header) {
@@ -28,8 +28,7 @@ export const auth_middleware = (req: Request & {user: User}, res: Response, next
         return next();
     }
 
-    req.user = user;
-
+    res.locals.user = user;
     next();
 }
 
@@ -38,12 +37,12 @@ export const get_uniqname_from_email = (email: string) => {
     return email.split('@')[0];
 }
 
-export const get_jwt_token = (uniqname: string, full_name: string, email: string, is_staff: boolean ) => {
+export const get_jwt_token = (uniqname: string, full_name: string, email: string) => {
     if (process.env.JWT_SECRET == undefined) {
         throw new Error("JWT_SECRET undefined")
     }
 
-    return jwt.sign({ uniqname, full_name, email, is_staff }, process.env.JWT_SECRET, { expiresIn: '30d' });
+    return jwt.sign({ uniqname, full_name, email }, process.env.JWT_SECRET, { expiresIn: '30d' });
 }
 
 export const authenticate_with_google = async (access_token: string) => {
