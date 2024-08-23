@@ -16,6 +16,9 @@ const get_item_info_handler = (socket: Socket, {queue_id, uids} : {queue_id: str
     const anonymiser = queue.get_anonymiser();
 
     const item_infos_map = new Map<string, any>();
+    const user = get_socket_user(socket);
+
+    const is_staff = user != undefined && queue.is_user_staff(user.uniqname);
 
     for (const uid of uids) {
         let student = queue.get_item_by_id(uid);
@@ -26,7 +29,7 @@ const get_item_info_handler = (socket: Socket, {queue_id, uids} : {queue_id: str
         }
 
 
-        if (anonymiser.should_anonymise_to(student, requester)) {
+        if (anonymiser.should_anonymise_to(student, requester, is_staff)) {
             student = anonymiser.anonymise(student);
         }
 

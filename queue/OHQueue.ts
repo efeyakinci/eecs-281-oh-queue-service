@@ -7,7 +7,7 @@ import { Announcement} from "./QueueTypes";
 export interface Anonymiser<T> {
     anonymise(item: T): T;
 
-    should_anonymise_to(item: T,user: User | undefined): boolean;
+    should_anonymise_to(item: T,user: User | undefined, is_staff): boolean;
 }
 
 export interface IsSameItem<T> {
