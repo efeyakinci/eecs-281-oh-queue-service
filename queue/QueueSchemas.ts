@@ -2,7 +2,6 @@ import { z } from "zod";
 
 const queue_schema_item = z.object({
     name: z.string(),
-    staff_file: z.string(),
     schedule_item_regex: z.string(),
     calendar_url: z.string(),
 });

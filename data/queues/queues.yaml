@@ -30,7 +30,10 @@ eecs-489:
     queues:
       bbb-office-hours:
         name: "BBB Office Hours"
-        staff_file: "281-staff.txt"
         schedule_item_regex: "(?=.*\\bbbb\\b)"
-        calendar_url: umich.edu_c8sngos30gjedcda3s9raemaqg@group.calendar.google.com
+        calendar_url: c_c90b697d4a95cfcb5e6493e42da7a3b1aa9edddbd5ad77ba5c414d7e61af8b2d@group.calendar.google.com
+      virtual-office-hours:
+        name: "Virtual Office Hours"
+        schedule_item_regex: "(?=.*\\bvirtual\\b)"
+        calendar_url: c_c90b697d4a95cfcb5e6493e42da7a3b1aa9edddbd5ad77ba5c414d7e61af8b2d@group.calendar.google.com
 
