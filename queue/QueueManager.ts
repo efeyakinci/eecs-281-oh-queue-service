@@ -58,7 +58,7 @@ Object.entries(queue_data).forEach(([class_id, queue_class]) => {
     Object.entries(queue_class.queues).forEach(([queue_id, queue]) => {
         const schedule = new OHSchedule({
             calendar: new GoogleCalendar(queue.calendar_url), 
-            event_regex: new RegExp(queue.schedule_item_regex)
+            event_regex: new RegExp(queue.schedule_item_regex, 'i')
         });
 
         if (!staff_data[class_id]) {
