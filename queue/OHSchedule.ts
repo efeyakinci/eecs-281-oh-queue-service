@@ -51,7 +51,8 @@ export class GoogleCalendar {
                 return {
                     start: item.start.dateTime,
                     end: item.end.dateTime,
-                    summary: item.summary
+                    summary: item.summary,
+                    location: "location" in item ? item.location : ""
                 }
             });
         }
@@ -86,7 +87,7 @@ export class OHSchedule {
     }
 
     update_items() {
-        this.items = this.calendar.get_events().filter((event) => this.event_regex.test(event.summary));
+        this.items = this.calendar.get_events().filter((event) => this.event_regex.test(event.summary) || this.event_regex.test(event.location));
     }
 
     async sync_to_calendar() {
