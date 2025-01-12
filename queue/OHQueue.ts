@@ -254,12 +254,14 @@ export class OHQueue<T> {
         });
     }
 
-    add_announcement(announement: Announcement) {
-        this.annoucements.set(announement.id, announement);
+    add_announcement(announcement: Announcement) {
+        this.annoucements.set(announcement.id, announcement);
+        this.queue_state_changed = true;
     }
 
     remove_announcement(id: string) {
         this.annoucements.delete(id);
+        this.queue_state_changed = true;
     }
 
     get_announcements() {

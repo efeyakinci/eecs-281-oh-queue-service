@@ -5,6 +5,8 @@
     "dev": "tsx --watch app.ts"
   },
   "dependencies": {
+    "@chakra-ui/react": "^3.3.0",
+    "@emotion/react": "^11.14.0",
     "@google-cloud/local-auth": "^2.1.0",
     "@types/express": "^4.17.21",
     "@types/jsonwebtoken": "^9.0.5",
