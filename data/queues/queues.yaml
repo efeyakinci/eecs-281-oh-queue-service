@@ -31,13 +31,13 @@ eecs-489:
       bbb-office-hours:
         name: "BBB Office Hours"
         schedule_item_regex: "(?=.*\\bbbb\\b)"
-        calendar_url: c_c90b697d4a95cfcb5e6493e42da7a3b1aa9edddbd5ad77ba5c414d7e61af8b2d@group.calendar.google.com
+        calendar_url: c_b094da6f19be5402e97ca0cb6016cdc9baeb2adef4de4c27704fd2c7a75783ec@group.calendar.google.com
       dude-office-hours:
         name: "Duderstadt 3rd Floor Office Hours"
         schedule_item_regex: "(?=.*\\bDude)"
-        calendar_url: c_c90b697d4a95cfcb5e6493e42da7a3b1aa9edddbd5ad77ba5c414d7e61af8b2d@group.calendar.google.com
+        calendar_url: c_b094da6f19be5402e97ca0cb6016cdc9baeb2adef4de4c27704fd2c7a75783ec@group.calendar.google.com
       virtual-office-hours:
         name: "Virtual Office Hours"
         schedule_item_regex: "(?=.*\\bvirtual\\b)"
-        calendar_url: c_c90b697d4a95cfcb5e6493e42da7a3b1aa9edddbd5ad77ba5c414d7e61af8b2d@group.calendar.google.com
+        calendar_url: c_b094da6f19be5402e97ca0cb6016cdc9baeb2adef4de4c27704fd2c7a75783ec@group.calendar.google.com
 
